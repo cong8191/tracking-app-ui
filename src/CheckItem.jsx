@@ -152,7 +152,7 @@ export default function CheckItem() {
     }
 
     if (content) {
-      processAndInsertText(content, e.target);
+      processAndReplaceText(content, e.target);
     }
   };
 
