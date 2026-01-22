@@ -1,0 +1,84 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.custom-auto-dropdown .ant-select-item-option-content {
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+.ant-select-single {
+  height: auto !important;
+}
+
+.table-cnd { clear: both; height: calc(100dvh - 119px); width: 100%; overflow: auto; position: relative; }
+.table-cnd  { border-color: #E3E8EE; width: 100%; margin: 0; border-top: none; }
+.table-cnd  TBODY { display: block; width: 100%; overflow: scroll; width: 100%; }
+.table-cnd  THEAD { display: block; width: 100%; position: sticky; top: 0px; background: #fff; color: #949aa4; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.table-cnd  THEAD TH { padding: 14px 10px 12px 10px; text-align: center; }
+.table-cnd  THEAD TH:before { content: ''; position: absolute; left: 0; bottom: 0; width: 100%; border-bottom: 1px solid #E3E8EE; }
+.table-cnd  THEAD TH.vo-cnd-sort { cursor: pointer; }
+/* .table-cBLE THEAD TH.vo-cnd-sort:after { content: ""; display: inline-block; width: 5px; height: 11px; vertical-align: -1px; margin-left: 4px; background: url(../../../img/site-specific/liquid-grit/icon-sort.svg) no-repeat center; background-size: 100% auto;  } */
+.table-cnd  THEAD TH.vo-cnd-sort.vo-cnd-sort-desc,
+.table-cnd  THEAD TH.vo-cnd-sort.vo-cnd-sort-asc { color: #2281E0; color: #3c4567; }
+.table-cnd  THEAD TH.vo-cnd-sort.vo-cnd-sort-desc:after,
+.table-cnd  THEAD TH.vo-cnd-sort.vo-cnd-sort-asc:after{ filter: saturate(500%) brightness(55%) }
+.table-cnd  TFOOT { display: block; border-top: 1px solid #E3E3E3; }
+/* .table-cBLE TR { border-bottom: 1px solid #eef2f9; transition: background .18s; } */
+.table-cnd  TR:hover { background: #F2F5FA; }
+.table-cnd  THEAD TR:hover { background: #fff; }
+.table-cnd  TD,
+.table-cnd  TH { min-width: 202px; max-width: 202px; padding: 18px 10px 16px 10px; overflow: hidden; }
+.table-cnd  TD:last-child,
+.table-cnd  TH:last-child { padding-right: 0; }
+.table-cnd  td { text-align: center; vertical-align: middle; }
+/* .table-cnd  TH:first-child{ padding-left: 40px; text-align: left !important; } */
+
+/* 1. Style cơ bản cho bảng */
+          .html-table-wrapper table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px; /* Cỡ chữ vừa phải */
+          }
+          
+          /* 2. Cố định Header (Sticky) */
+          .html-table-wrapper th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #fafafa;
+            border-bottom: 2px solid #e8e8e8;
+            padding: 12px 8px;
+            white-space: nowrap; /* Giữ tiêu đề 1 dòng, không bị ngắt */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          }
+          
+          .html-table-wrapper td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: top; /* Căn chữ lên trên cho đẹp */
+          }
+
+          /* 3. QUAN TRỌNG: Tự động chỉnh độ rộng tối thiểu */
+          .responsive-table-container {
+             min-width: 600px; /* Mặc định máy tính bảng/PC ít nhất là 600 */
+          }
+          
+          /* Trên điện thoại (màn nhỏ), ta vẫn giữ min-width để ép scroll ngang
+             thay vì để nó co lại quá bé */
+          @media (max-width: 768px) {
+             .html-table-wrapper th, .html-table-wrapper td {
+                font-size: 12px; /* Giảm chữ chút xíu trên mobile */
+                padding: 8px 4px;
+             }
+          }
