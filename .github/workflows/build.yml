@@ -34,4 +34,5 @@ jobs:
           
           branch: main
           folder: build # Chỉ định folder chứa kết quả build
+          target-folder: build
           clean: true
