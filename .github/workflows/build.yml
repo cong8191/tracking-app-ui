@@ -1,0 +1,21 @@
+name: Build React App
+on:
+  push:
+    branches: [ main ] # Chạy mỗi khi bạn push code vào nhánh main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # Lấy code từ repo về máy ảo
+      
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18 # Chọn phiên bản Node phù hợp
+          
+      - name: Install Dependencies
+        run: npm install # Cài đặt thư viện
+        
+      - name: Build Project
+        run: npm run build # Lệnh build ReactJS
