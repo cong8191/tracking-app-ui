@@ -82,3 +82,10 @@ code {
                 padding: 8px 4px;
              }
           }
+
+          /* Ép thẻ bao ngoài của Upload giãn 100% */
+.full-width-upload .ant-upload,
+.full-width-upload .ant-upload-select {
+  width: 100% !important;
+  display: block !important;
+}

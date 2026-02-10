@@ -49,10 +49,10 @@ export default function CreateNew() {
         gameId: game,
         galleryName: keyword,
         IsContent: isContent,
-        publicDate: selectedDate
+        publicDate: selectedDate.format("YYYY/MM/DD")
       });
 
-      setURLEdit(response && response.data ? `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${response.data.gallery_id}` : undefined);
+      setURLEdit(response && response.data ? `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${response.data.result.gallery_id}` : undefined);
 
       setLoading(false);
       message.success('Tạo gallery mới thành công!');

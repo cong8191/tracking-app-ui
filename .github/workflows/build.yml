@@ -1,21 +1,37 @@
-name: Build React App
+name: Build and Deploy to Another Repo
 on:
   push:
-    branches: [ main ] # Chạy mỗi khi bạn push code vào nhánh main
+    branches: [ main ]
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Lấy code từ repo về máy ảo
-      
-      - name: Install Node.js
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # Chọn phiên bản Node phù hợp
+          node-version: '18'
+
+      - name: Install and Build
+        run: |
+          npm install
+          npm run build # Tạo ra folder 'build'
+
+      - name: Deploy to Another Repo
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          # Token này bạn sẽ tạo ở Bước 2 bên dưới
+          token: ${{ secrets.MY_DEPLOY_TOKEN }} 
           
-      - name: Install Dependencies
-        run: npm install # Cài đặt thư viện
-        
-      - name: Build Project
-        run: npm run build # Lệnh build ReactJS
+          # Thay bằng: TênUser/TênRepoĐích
+          repository-name: cong8191/tracking_game
+          
+          branch: main
+          folder: build # Chỉ định folder chứa kết quả build
+          clean: true

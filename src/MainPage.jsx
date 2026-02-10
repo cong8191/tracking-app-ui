@@ -28,7 +28,7 @@ export default function App() {
   const [popupData, setPopupData] = useState([]); // <--- Data từ API sẽ đẩy vào đây
   const [isPopupLoading, setIsPopupLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchDate, setSearchDate] = useState(dayjs().subtract(1,"month"));
+  const [searchDate, setSearchDate] = useState(dayjs().subtract(3,"month"));
   // --------------------------------
 
   const [form] = Form.useForm();
@@ -507,12 +507,13 @@ export default function App() {
         // title={popupSectionIndex !== null ? `Dữ liệu của: ${sections[popupSectionIndex]?.name}` : "Data"}
         title={// 1. Container chính: flex-wrap để cho phép xuống dòng khi hết chỗ
   // 1. Container: Bỏ 'flex-wrap', thêm 'text-nowrap' để chữ không bị gãy
-  <div 
+ <div 
     style={{ 
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'space-between', 
-      flexWrap: 'nowrap', // CẤM tuyệt đối xuống dòng
+      flexWrap: 'wrap', // QUAN TRỌNG: Cho phép xuống dòng
+      gap: '8px',       // Khoảng cách giữa Title và Input khi rớt dòng
       width: '100%' 
     }}
   >
@@ -529,7 +530,17 @@ export default function App() {
     </div>
 
     {/* 2. Cụm Input: Nằm bên phải */}
-    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginRight: '50px' }}>
+    <div 
+      style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px',
+        // Logic responsive nằm ở đây:
+        flex: '1 1 250px', // Co giãn linh hoạt, nhưng nếu nhỏ hơn 250px thì rớt dòng
+        justifyContent: 'flex-end' // Trên desktop thì căn phải, mobile tự giãn
+      }}
+      onMouseDown={e => e.stopPropagation()} // Chặn kéo thả modal khi click vào input
+    >
       
       {/* Date Picker: Set cứng width nhỏ xinh (khoảng 130px là vừa đẹp ngày tháng) */}
       <DatePicker

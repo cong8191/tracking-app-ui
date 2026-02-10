@@ -51,7 +51,7 @@ export default function MenuLink({ activeKey }) {
         break;
       case 'upload':
         // navigate('/createNew');
-        window.open('/createNew', '_blank');
+        window.open('/upload', '_blank');
         break;
       case 'create-gallery':
         // navigate('/createNew');
