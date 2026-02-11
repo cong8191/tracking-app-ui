@@ -25,15 +25,15 @@ export default function PopupDateOffsetPicker({ selectedDate, onChange , onClose
       <Space style={{ marginBottom: 10 }}>
         <div>
           <div style={{ fontWeight: 'bold' }}>Day</div>
-          <InputNumber value={offset.day} onChange={(v) => setOffset(o => ({ ...o, day: v ?? 0 }))} />
+          <InputNumber controls={true} value={offset.day} onChange={(v) => setOffset(o => ({ ...o, day: v ?? 0 }))} />
         </div>
         <div>
           <div style={{ fontWeight: 'bold' }}>Hour</div>
-          <InputNumber value={offset.hour} onChange={(v) => setOffset(o => ({ ...o, hour: v ?? 0 }))} />
+          <InputNumber controls={true} value={offset.hour} onChange={(v) => setOffset(o => ({ ...o, hour: v ?? 0 }))} />
         </div>
         <div>
           <div style={{ fontWeight: 'bold' }}>Minute</div>
-          <InputNumber value={offset.minute} onChange={(v) => setOffset(o => ({ ...o, minute: v ?? 0 }))} />
+          <InputNumber controls={true} value={offset.minute} onChange={(v) => setOffset(o => ({ ...o, minute: v ?? 0 }))} />
         </div>
         <Button icon={<CloseOutlined />} onClick={()=>{
           onClose();

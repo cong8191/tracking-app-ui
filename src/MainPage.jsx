@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Collapse, Space, DatePicker, Select, Tag, Popover, Input, Modal, Form, Table, Spin } from "antd"; // Thêm Table
+import { Button, Collapse, Space, DatePicker, Select, Tag, Popover, Input, Modal, Form, Spin } from "antd";
 import {
   CloseOutlined, CloudOutlined, EditOutlined,
   EyeOutlined, LoadingOutlined, PlusOutlined, ReadOutlined,
-  DatabaseOutlined // Đổi icon thành Database cho hợp ngữ cảnh data
+  DatabaseOutlined
 } from "@ant-design/icons";
 
 import dayjs from "dayjs";
@@ -22,14 +22,12 @@ export default function App() {
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(null);
 
-  // --- STATE CHO POPUP DATA MỚI ---
   const [popupSectionIndex, setPopupSectionIndex] = useState(null);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
-  const [popupData, setPopupData] = useState([]); // <--- Data từ API sẽ đẩy vào đây
+  const [popupData, setPopupData] = useState([]);
   const [isPopupLoading, setIsPopupLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchDate, setSearchDate] = useState(dayjs().subtract(3,"month"));
-  // --------------------------------
+  const [searchDate, setSearchDate] = useState(dayjs().subtract(3, "month"));
 
   const [form] = Form.useForm();
   const [isLogin, setLogin] = useState(false);
@@ -37,118 +35,70 @@ export default function App() {
   const [cookie, setCookie] = useState("");
 
   const selectedDateRef = useRef(selectedDate);
-  const toRef = useRef(null);
   const [openIndex, setOpenIndex] = useState(null);
+  const tableContainerRef = useRef(null);
+  const filterInputRef = useRef(null);
+
+  // 1. Theo dõi kích thước màn hình
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
 
-  const tableContainerRef = useRef(null);
-  const filterInputRef = useRef(null);
-
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     const keyword = (e.target || e).value.toLowerCase();
-
-    // 2. Truy cập vào DOM thật thông qua Ref
     if (tableContainerRef.current) {
-      // Tìm tất cả các dòng tr trong tbody
       const rows = tableContainerRef.current.querySelectorAll('table.table-cnd tbody tr');
-
-      // 3. Duyệt qua từng dòng và ẩn/hiện thủ công
       rows.forEach((row) => {
         const cells = row.querySelectorAll('td');
-
-        // Lấy text của cột Activity (index 3) và Alt Title (index 4)
-        // Dùng ?. để tránh lỗi nếu dòng nào đó bị thiếu cột
         const activityText = cells[2]?.innerText.toLowerCase() || '';
         const altTitleText = cells[3]?.innerText.toLowerCase() || '';
-
-        // Kiểm tra xem từ khóa có nằm trong 1 trong 2 cột này không
         const isMatch = activityText.includes(keyword) || altTitleText.includes(keyword);
-
-        // Nếu tìm thấy keyword thì set display = '' (mặc định), không thì 'none' (ẩn)
         row.style.display = isMatch ? '' : 'none';
       });
     }
   };
-  const removeColumnsFromHtml = (htmlString, columnNames) => {
-    // columnNames là mảng, ví dụ: ["Activity", "Total Days"]
-    if (!htmlString || !columnNames || columnNames.length === 0) return htmlString;
 
-    // 1. Tạo div ảo
+  const removeColumnsFromHtml = (htmlString, columnNames) => {
+    if (!htmlString || !columnNames || columnNames.length === 0) return htmlString;
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = htmlString;
-
-    // 2. Tìm tất cả các thẻ Header
     const headers = Array.from(tempDiv.querySelectorAll("th"));
-
-    // 3. Tìm vị trí (index) của TẤT CẢ các cột cần xóa
-    // Kết quả sẽ là một mảng các số, ví dụ: [1, 4]
     let targetIndexes = [];
     headers.forEach((th, index) => {
-      // Kiểm tra xem tên cột này có nằm trong danh sách cần xóa không
-      if (columnNames.includes(th.innerText.trim())) {
-        targetIndexes.push(index);
-      }
+      if (columnNames.includes(th.innerText.trim())) targetIndexes.push(index);
     });
-
-    // Nếu không tìm thấy cột nào trùng tên thì trả về luôn
     if (targetIndexes.length === 0) return htmlString;
-
-    // 4. Sắp xếp index từ LỚN xuống BÉ (Quan trọng!)
-    // Để khi xóa cột ở vị trí 5, nó không làm thay đổi vị trí của cột ở vị trí 2
     targetIndexes.sort((a, b) => b - a);
-
-    // 5. Bắt đầu xóa
-    // Xóa Header trước
-    targetIndexes.forEach(index => {
-      if (headers[index]) headers[index].remove();
-    });
-
-    // Xóa ô dữ liệu (td) trong từng dòng
+    targetIndexes.forEach(index => headers[index]?.remove());
     const rows = tempDiv.querySelectorAll("tr");
     rows.forEach((row) => {
       const cells = row.querySelectorAll("td");
-
-      // Lặp qua danh sách index cần xóa
-      targetIndexes.forEach(index => {
-        // Nếu dòng này có ô ở vị trí đó thì xóa
-        if (cells[index]) {
-          cells[index].remove();
-        }
-      });
+      targetIndexes.forEach(index => cells[index]?.remove());
     });
-
-    // 6. Trả về kết quả
     return tempDiv.innerHTML;
   };
 
-  // --- HÀM XỬ LÝ MỞ POPUP & LOAD DATA (MÔ PHỎNG) ---
   const handleOpenPopup = async (sectionIndex, gameId) => {
     setPopupSectionIndex(sectionIndex);
     setIsPopupVisible(true);
     setIsPopupLoading(true);
-    setPopupData(null); // Reset
-
-    // console.log(filterInputRef);
-    
-
+    setPopupData(null);
     try {
-      console.log("Đang lấy HTML cho Game ID:", gameId);
-
       const response = await axios.post(`/show-data`, { gameId: gameId, startDate: searchDate.format("YYYY-MM-DD") });
       const data = response.data;
-
-      let cleanHtml = removeColumnsFromHtml(data.content_html, ["Game","Total Days"]);
-
-
+      let cleanHtml = removeColumnsFromHtml(data.content_html, ["Game", "Total Days"]);
       setPopupData(cleanHtml);
       setIsPopupLoading(false);
       setSearchTerm('');
-
-      // handleSearch(filterInputRef.current?.input)
     } catch (error) {
       console.error(error);
       setIsPopupLoading(false);
@@ -156,7 +106,6 @@ export default function App() {
     }
   };
 
-  // Các hàm cũ giữ nguyên
   const fetchGameData = async (dateStr) => {
     try {
       setLogin(true);
@@ -210,13 +159,11 @@ export default function App() {
       let newSections = [...sections];
       newSections[sectionIndex]['event-details'][fieldIndex].loading = true;
       setSections(newSections);
-
       const payload = newSections[sectionIndex]['event-details'][fieldIndex];
       payload.date = selectedDate.format("YYYY/MM/DD");
       payload.gameId = newSections[sectionIndex].id;
       const res = await axios.post("/action", payload);
       const data = res.data;
-
       newSections = [...sections];
       newSections[sectionIndex]['event-details'][fieldIndex].loading = false;
       newSections[sectionIndex]['event-details'][fieldIndex].id = data.id;
@@ -234,7 +181,7 @@ export default function App() {
   const handleFieldChange = (sectionIndex, fieldIndex, key, value, defaultDay) => {
     const newSections = [...sections];
     newSections[sectionIndex]['event-details'][fieldIndex][key] = value;
-    if (defaultDay && defaultDay != '') {
+    if (defaultDay && defaultDay !== '') {
       newSections[sectionIndex]['event-details'][fieldIndex].to = dayjs().add(defaultDay, 'day').format("YYYY/MM/DD")
     }
     setSections(newSections);
@@ -257,7 +204,6 @@ export default function App() {
     try {
       const values = await form.validateFields();
       const datap = { eventId: values.eventId, name: values.gameName, gallery_id: values.galleryId, g_name: values.relatedName, default_day: values.day, post_slug: values.post_slug, gameId: sections[activeSectionIndex].id };
-
       const res = await axios.post("/event", datap);
       const data = res.data;
       const newEvent = {
@@ -268,15 +214,13 @@ export default function App() {
         g_name: values.relatedName,
         post_slug: values.post_slug
       };
-
       const newSections = [...sections];
-      const eventIndex = newSections[activeSectionIndex].events.findIndex(item => item.id == data.lastedId);
+      const eventIndex = newSections[activeSectionIndex].events.findIndex(item => item.id === data.lastedId);
       if (eventIndex !== -1) {
         newSections[activeSectionIndex].events[eventIndex] = newEvent;
       } else {
         newSections[activeSectionIndex].events.push(newEvent);
       }
-
       setSections(newSections);
       setEventModalVisible(false);
       form.resetFields();
@@ -285,20 +229,32 @@ export default function App() {
     }
   };
 
-  // --- Hàm render nội dung chính (giữ nguyên logic cũ) ---
   const renderSectionBody = (fields, sectionIndex) => {
     if (!fields) return null;
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         {fields['event-details']?.filter(item => !item.isDelete)?.map((field, fieldIndex) => (
-          <div key={sectionIndex + '- ' + fieldIndex} style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", width: "100%" }}>
+          <div key={sectionIndex + '- ' + fieldIndex} 
+               style={{ 
+                 display: "flex", 
+                 flexWrap: "wrap", 
+                 gap: "8px", 
+                 alignItems: "center", 
+                 width: "100%",
+                 padding: isMobile ? "12px 0" : "4px 0",
+                 borderBottom: isMobile ? "1px dashed #ddd" : "none"
+               }}>
 
-            {/* Cột 1: Date Range */}
-            <div style={{ flex: 2, minWidth: "300px", maxWidth: "500px" }}>
+            {/* Cột 1: Date Range - Desktop cố định rộng, Mobile 100% */}
+            <div style={{ 
+              display: "flex", 
+              gap: "4px", 
+              flex: isMobile ? "1 1 100%" : "0 0 310px" 
+            }}>
               <DatePicker
                 format="YYYY/MM/DD"
-                disabled={field.status == "1"}
-                style={{ width: "50%" }}
+                disabled={field.status === "1"}
+                style={{ width: isMobile ? "50%" : "150px" }}
                 value={field.from ? dayjs(field.from) : ''}
                 onChange={(date) => {
                   handleFieldChange(sectionIndex, fieldIndex, "from", date.format('YYYY/MM/DD'));
@@ -320,10 +276,9 @@ export default function App() {
                   />
                 }>
                 <Input
-                  style={{ width: "50%" }}
-                  disabled={field.status == "1"}
+                  style={{ width: isMobile ? "50%" : "150px" }}
+                  disabled={field.status === "1"}
                   readOnly
-                  ref={toRef}
                   placeholder="Chọn ngày"
                   value={field.to ? dayjs(field.to).format('YYYY/MM/DD') : ''}
                   onClick={() => setOpenIndex(sectionIndex + '- ' + fieldIndex)}
@@ -331,8 +286,11 @@ export default function App() {
               </Popover>
             </div>
 
-            {/* Cột 2: Select Events */}
-            <div style={{ flex: 1, minWidth: "150px" }}>
+            {/* Cột 2: Select Event - Desktop tự giãn, Mobile 100% (XUỐNG DÒNG) */}
+            <div style={{ 
+              flex: isMobile ? "1 1 100%" : "1 1 auto",
+              minWidth: isMobile ? "100%" : "200px" 
+            }}>
               <Select
                 disabled={field.status === "1"}
                 showSearch
@@ -355,7 +313,7 @@ export default function App() {
                 dropdownRender={menu => (
                   <>
                     {menu}
-                    <Button type="link" onClick={() => {
+                    <Button type="link" size="small" onClick={() => {
                       setEventModalVisible(true);
                       setActiveSectionIndex(sectionIndex);
                     }}>+ Thêm mới</Button>
@@ -363,56 +321,14 @@ export default function App() {
                 )}
               >
                 {fields.events.map((event) => (
-                  <Select.Option
-                    key={event.id}
-                    value={event.id}
-                    label={`${event.name} ${event.id}`}
-                    defaultDay={event.default_day}
-                    g_name={event.g_name}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', whiteSpace: 'normal', wordBreak: 'break-word', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        {event.name}
-                        {event.g_name ? ` (${event.g_name})` : ''}
+                  <Select.Option key={event.id} value={event.id} label={`${event.name} ${event.id}`} defaultDay={event.default_day} g_name={event.g_name}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <div style={{ flex: 1, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        {event.name} {event.g_name ? ` (${event.g_name})` : ''}
                       </div>
                       <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                        {event.post_slug && event.post_slug != '' &&
-                          <Button
-                            type="text" size="small" icon={<ReadOutlined />}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank');
-                            }}
-                          />
-                        }
-                        <Button
-                          type="text" size="small" icon={<EyeOutlined />}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank');
-                          }}
-                        />
-                        {field.status !== "1" && (
-                          <Button
-                            type="text" size="small" icon={<EditOutlined />}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              form.setFieldsValue({
-                                eventId: event.id,
-                                gameName: event.name,
-                                day: event.default_day,
-                                galleryId: event.gallery_id,
-                                relatedName: event.g_name,
-                                post_slug: event.post_slug
-                              });
-                              setEventModalVisible(true);
-                              setActiveSectionIndex(sectionIndex);
-                            }}
-                          />
-                        )}
+                        {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
+                        <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
                       </div>
                     </div>
                   </Select.Option>
@@ -420,33 +336,40 @@ export default function App() {
               </Select>
             </div>
 
-            {/* Cột 3: Select Type */}
-            <Select
-              placeholder="Select a type"
-              style={{ width: 150 }}
-              value={field.type}
-              disabled={field.status == "1"}
-              onChange={(value, option) => handleFieldChange(sectionIndex, fieldIndex, "type", value)}
-            >
-              <Option value="date">Date</Option>
-              <Option value="image">Image</Option>
-              <Option value="video">Img/Video</Option>
-              <Option value="nochanged">No Changed</Option>
-            </Select>
+            {/* Cột 3: Type & Status - Desktop nằm cùng hàng, Mobile 100% */}
+            <div style={{ 
+              display: "flex", 
+              gap: "8px", 
+              alignItems: "center",
+              flex: isMobile ? "1 1 100%" : "0 0 auto"
+            }}>
+              <Select
+                placeholder="Type"
+                style={{ width: isMobile ? "100%" : 130 }}
+                value={field.type}
+                disabled={field.status === "1"}
+                onChange={(value) => handleFieldChange(sectionIndex, fieldIndex, "type", value)}
+              >
+                <Option value="date">Date</Option>
+                <Option value="image">Image</Option>
+                <Option value="video">Img/Video</Option>
+                <Option value="nochanged">No Change</Option>
+              </Select>
 
-            {/* Cột 4: Status */}
-            {!field.loading && field.status === "1" && (<Tag color={"green"}>{"Success"}</Tag>)}
-            {field.status !== "1" && (
               <div style={{ flexShrink: 0 }}>
-                <Button icon={field.loading ? <LoadingOutlined /> : <CloudOutlined />} disabled={field.loading} type="text" onClick={() => saveCloud(sectionIndex, fieldIndex)} />
-                {!field.loading && <Button icon={<CloseOutlined />} type="text" onClick={() => removeField(sectionIndex, fieldIndex)} />}
+                {!field.loading && field.status === "1" ? (
+                  <Tag color={"green"}>Success</Tag>
+                ) : (
+                  <div style={{ display: "flex" }}>
+                    <Button icon={field.loading ? <LoadingOutlined /> : <CloudOutlined />} disabled={field.loading} type="text" onClick={() => saveCloud(sectionIndex, fieldIndex)} />
+                    {!field.loading && <Button icon={<CloseOutlined />} type="text" onClick={() => removeField(sectionIndex, fieldIndex)} />}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         ))}
-        <Button type="dashed" icon={<PlusOutlined />} onClick={() => addField(sectionIndex)} block>
-          Add Field
-        </Button>
+        <Button type="dashed" icon={<PlusOutlined />} onClick={() => addField(sectionIndex)} block>Add Field</Button>
       </Space>
     );
   };
@@ -454,24 +377,24 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4 space-y-4">
       <MenuLink activeKey="home" />
+      
       <div style={{ textAlign: "center", marginBottom: "20px" }}>
         <Button type="primary" onClick={() => {
           navigator.clipboard.writeText('copy(JSON.stringify({"csrf": window.csrfHash, "cookies" : document.cookie }));')
-        }} disabled={isLogin}>
-          Script Get Token
-        </Button>
+        }} disabled={isLogin}>Script Get Token</Button>
       </div>
-      <div style={{ marginBottom: "16px", textAlign: "center", display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
+
+      <div style={{ marginBottom: "16px", textAlign: "center", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", width: "100%" }}>
         <TextArea
           placeholder="Nhập cookie tại đây..."
           value={cookie}
           onChange={(e) => setCookie(e.target.value)}
           autoSize={{ minRows: 3, maxRows: 5 }}
-          style={{ width: "400px" }}
+          style={{ width: isMobile ? "100%" : "500px" }}
         />
         <Button type="primary" onClick={login} disabled={isLogin}>Save Token</Button>
-        {isLogin && <LoadingOutlined />}
       </div>
+
       <div style={{ marginBottom: "16px", textAlign: "center" }}>
         <DatePicker disabled={isLogin} value={selectedDate} onChange={(date) => setSelectedDate(date)} format="YYYY/MM/DD" />
       </div>
@@ -482,16 +405,8 @@ export default function App() {
             <Panel
               header={<div className="flex justify-between items-center w-full">{fields.name}</div>}
               key="0"
-              // Nút bấm mở Popup Data
               extra={
-                <Button
-                  type="text"
-                  icon={<DatabaseOutlined />} // Icon data
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenPopup(sectionIndex, fields.id); // Gọi hàm mở popup và chuẩn bị load data
-                  }}
-                >
+                <Button type="text" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(sectionIndex, fields.id); }}>
                   Data
                 </Button>
               }
@@ -502,193 +417,58 @@ export default function App() {
         ))}
       </div>
 
-      {/* --- MODAL HIỂN THỊ DỮ LIỆU RIÊNG (TABLE) --- */}
+      {/* MODAL DATA */}
       <Modal
-        // title={popupSectionIndex !== null ? `Dữ liệu của: ${sections[popupSectionIndex]?.name}` : "Data"}
-        title={// 1. Container chính: flex-wrap để cho phép xuống dòng khi hết chỗ
-  // 1. Container: Bỏ 'flex-wrap', thêm 'text-nowrap' để chữ không bị gãy
- <div 
-    style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      flexWrap: 'wrap', // QUAN TRỌNG: Cho phép xuống dòng
-      gap: '8px',       // Khoảng cách giữa Title và Input khi rớt dòng
-      width: '100%' 
-    }}
-  >
-    
-    {/* 1. Tiêu đề: Luôn giữ nguyên, không được co lại */}
-    <div 
-      style={{ 
-        whiteSpace: 'nowrap', // Cấm ngắt dòng chữ
-        fontWeight: 'bold', 
-        marginRight: '10px' 
-      }}
-    >
-      {popupSectionIndex !== null ? `Dữ liệu của: ${sections[popupSectionIndex]?.name}` : "Data"}
-    </div>
-
-    {/* 2. Cụm Input: Nằm bên phải */}
-    <div 
-      style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '8px',
-        // Logic responsive nằm ở đây:
-        flex: '1 1 250px', // Co giãn linh hoạt, nhưng nếu nhỏ hơn 250px thì rớt dòng
-        justifyContent: 'flex-end' // Trên desktop thì căn phải, mobile tự giãn
-      }}
-      onMouseDown={e => e.stopPropagation()} // Chặn kéo thả modal khi click vào input
-    >
-      
-      {/* Date Picker: Set cứng width nhỏ xinh (khoảng 130px là vừa đẹp ngày tháng) */}
-      <DatePicker
-                format="YYYY/MM/DD"
-                
-                style={{ 
-            width: '135px', 
-            minWidth: '135px', // Cấm co nhỏ hơn mức này
-            padding: '2px 5px' // Giảm padding để tiết kiệm diện tích
-        }} 
-                value={searchDate}
-                onChange={(date) => {
-                  setSearchDate(date);
-                  handleOpenPopup(popupSectionIndex, sections[popupSectionIndex].id)
-                }}
-              />
-
-    
-      {/* Search Box: Set width cố định luôn cho chắc ăn */}
-      <Input
-        ref={filterInputRef}
-        value={searchTerm}
-        placeholder="Tìm kiếm..."
-        onChange={handleSearch}
-        className="form-control form-control-sm"
-        style={{ 
-            width: '150px', // Đủ để gõ vài chữ
-            minWidth: '100px' 
-        }} 
-      />
-      
-    </div>
-  </div>
-  }
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+            <div style={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}>
+              {popupSectionIndex !== null ? `Dữ liệu: ${sections[popupSectionIndex]?.name}` : "Data"}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }} onMouseDown={e => e.stopPropagation()}>
+              <DatePicker format="YYYY/MM/DD" style={{ width: '135px' }} value={searchDate} onChange={(date) => { setSearchDate(date); handleOpenPopup(popupSectionIndex, sections[popupSectionIndex].id) }} />
+              <Input ref={filterInputRef} value={searchTerm} placeholder="Tìm..." onChange={handleSearch} style={{ width: '120px' }} />
+            </div>
+          </div>
+        }
         open={isPopupVisible}
-        width="fit-content"
+        width={isMobile ? "95vw" : "fit-content"}
         onCancel={() => setIsPopupVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsPopupVisible(false)}>Đóng</Button>
-        ]}
-        // width={autoSize}
+        footer={[<Button key="close" onClick={() => setIsPopupVisible(false)}>Đóng</Button>]}
         destroyOnClose
       >
-
-        <div
-          style={{
-            height: '70vh',
-            overflowY: 'auto', // Cuộn dọc
-            overflowX: 'auto', // Cuộn ngang (QUAN TRỌNG CHO MOBILE)
-            borderTop: '1px solid #f0f0f0',
-            width: '100%'      // Chiếm hết chiều rộng modal
-          }}
-        >
-          {isPopupLoading ? (
-            <div style={{ textAlign: "center", padding: "20px" }}>
-              <Spin size="large" tip="Đang tải HTML..." />
-            </div>
-          ) : (
-            <div ref={tableContainerRef}
-              className="html-table-wrapper responsive-table-container"
-              dangerouslySetInnerHTML={{ __html: popupData || "<p>Không có dữ liệu</p>" }}
-            />
-          )}
+        <div style={{ height: '70vh', overflow: 'auto', borderTop: '1px solid #f0f0f0' }}>
+          {isPopupLoading ? <div style={{ textAlign: "center", padding: "20px" }}><Spin size="large" /></div> : <div ref={tableContainerRef} dangerouslySetInnerHTML={{ __html: popupData || "<p>Không có dữ liệu</p>" }} />}
         </div>
       </Modal>
 
-      {/* Các Modal khác giữ nguyên */}
+      {/* CÁC MODAL THÊM SỰ KIỆN GIỮ NGUYÊN */}
       <Modal title="Thêm sự kiện mới" open={eventModalVisible} onCancel={() => setEventModalVisible(false)} onOk={handleAddEvent} okText="Thêm">
         <Form form={form} layout="vertical">
-          <Button onClick={() => { setIsModalOpen(true) }}>Find event</Button>
-          <Form.Item hidden name="eventId" ></Form.Item>
-          <Form.Item label="Tên game" name="gameName" rules={[{ required: true, message: 'Nhập tên event' }]}><Input /></Form.Item>
-          <Form.Item label="Gallery ID" name="galleryId" rules={[{ required: true, message: 'Nhập gallery ID' }]}><Input /></Form.Item>
+          <Button onClick={() => setIsModalOpen(true)}>Find event</Button>
+          <Form.Item hidden name="eventId"></Form.Item>
+          <Form.Item label="Tên game" name="gameName" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item label="Gallery ID" name="galleryId" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item label="Post Slug" name="post_slug"><Input /></Form.Item>
           <Form.Item label="Day" name="day"><Input /></Form.Item>
           <Form.Item label="Tên sự kiện (related_name)" name="relatedName">
-            <Select
-
-              showSearch
-              // value={field.event_id}
-              style={{ width: '100%' }}
-              placeholder="Chọn sự kiện"
-              optionFilterProp="label"
-              popupMatchSelectWidth={false}
-
-              filterOption={(input, option) => {
-                const keyword = input.toLowerCase();
-                const name = option.label?.toLowerCase?.() || '';
-                const g_name = option.g_name?.toLowerCase?.() || '';
-                const id = String(option.value).toLowerCase();
-                return name.includes(keyword) || id.includes(keyword) || g_name.includes(keyword);
-              }}
-              onChange={(value, option) => { form.setFieldsValue({ galleryId: option?.galleryId || '', post_slug: option?.post_slug || '' }); }}
-
-            >
-              {sections[activeSectionIndex]?.events?.filter(event => (event.g_name || '') == '').map((event) => (
-                <Select.Option
-                  key={event.id} galleryId={event.gallery_id} post_slug={event.post_slug} value={event.name}>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', whiteSpace: 'normal', wordBreak: 'break-word', gap: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      {event.name}
-                    </div>
-                    <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                      {event.post_slug && event.post_slug != '' &&
-                        <Button
-                          type="text" size="small" icon={<ReadOutlined />}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank');
-                          }}
-                        />
-                      }
-                      <Button
-                        type="text" size="small" icon={<EyeOutlined />}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank');
-                        }}
-                      />
-                    </div>
-                  </div>
-                </Select.Option>
+            <Select showSearch style={{ width: '100%' }} optionFilterProp="label" filterOption={(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())} onChange={(v, opt) => form.setFieldsValue({ galleryId: opt?.galleryId || '', post_slug: opt?.post_slug || '' })}>
+              {sections[activeSectionIndex]?.events?.filter(e => (e.g_name || '') === '').map(e => (
+                <Select.Option key={e.id} galleryId={e.gallery_id} post_slug={e.post_slug} value={e.name} label={e.name}>{e.name}</Select.Option>
               ))}
             </Select>
-
-            {/* <Select showSearch placeholder="Chọn hoặc nhập tên sự kiện" allowClear optionFilterProp="children" mode={false} 
-              filterOption={(input, option) => (option.label?.toLowerCase() || '').includes(input.toLowerCase())}
-              onChange={(value, option) => { form.setFieldsValue({ galleryId: option?.galleryId || '', post_slug: option?.post_slug || '' }); }}>
-              {sections[activeSectionIndex]?.events?.filter(event => (event.g_name || '') == '').map((event) => (
-                <Select.Option key={event.id} galleryId={event.gallery_id} post_slug={event.post_slug} value={event.name}>{event.name}</Select.Option>
-              ))}
-            </Select> */}
           </Form.Item>
         </Form>
       </Modal>
 
-      <Modal title="Chọn event" open={isModalOpen} onCancel={() => { setIsModalOpen(false); }} footer={null} destroyOnClose>
+      <Modal title="Chọn event" open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} destroyOnClose>
         <SearchableTable gameId={sections[activeSectionIndex]?.id} returnParent={(data) => {
           setIsModalOpen(false);
-          const galleruName = data?.events?.[0] || data.title;
-          const galleryId = data?.id;
-          let day = '', eventId = undefined;
-          const eventIndex = sections[activeSectionIndex].events.findIndex(item => item.gallery_id == galleryId & item.name == galleruName);
-          if (eventIndex !== -1) { eventId = sections[activeSectionIndex].events[eventIndex].id; day = sections[activeSectionIndex].events[eventIndex].default_day; }
-          form.setFieldsValue({ eventId: eventId, galleryId: data?.id, gameName: galleruName, relatedName: data?.events?.[0] != data.title ? data.title : '', post_slug: data.permalink.replace('https://my.liquidandgrit.com/library/gallery/', ''), day: day });
+          const name = data?.events?.[0] || data.title;
+          const gId = data?.id;
+          let d = '', eId = undefined;
+          const idx = sections[activeSectionIndex].events.findIndex(i => i.gallery_id === gId && i.name === name);
+          if (idx !== -1) { eId = sections[activeSectionIndex].events[idx].id; d = sections[activeSectionIndex].events[idx].default_day; }
+          form.setFieldsValue({ eventId: eId, galleryId: gId, gameName: name, relatedName: data?.events?.[0] !== data.title ? data.title : '', post_slug: data.permalink.replace('https://my.liquidandgrit.com/library/gallery/', ''), day: d });
         }} />
       </Modal>
     </div>
