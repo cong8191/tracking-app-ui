@@ -329,7 +329,24 @@ export default function App() {
                       <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
                         {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
                         <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
+                        <Button
+                            type="text" size="small" icon={<EditOutlined />}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              form.setFieldsValue({
+                                eventId: event.id,
+                                gameName: event.name,
+                                day: event.default_day,
+                                galleryId: event.gallery_id,
+                                relatedName: event.g_name,
+                                post_slug: event.post_slug
+                              });
+                              setEventModalVisible(true);
+                              setActiveSectionIndex(sectionIndex);
+                            }}/>
                       </div>
+                      
                     </div>
                   </Select.Option>
                 ))}
