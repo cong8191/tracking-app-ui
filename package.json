@@ -12,6 +12,7 @@
     "react": "^18.0.0",
     "react-antd-ui": "file:",
     "react-dom": "^18.0.0",
+    "react-quill": "^2.0.0",
     "react-router-dom": "^7.6.0",
     "react-scripts": "5.0.1"
   },
