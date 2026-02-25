@@ -6,6 +6,7 @@ import SQLiteFileUploader from "./SQLiteFileUploader";
 import SearchableTable from "./SearchableTable";
 import CheckItem from "./CheckItem";
 import CreateNew from "./CreateNew";
+import MobileEditor from "./MobileEditor";
 
 export default function App() {
   return (
@@ -17,6 +18,8 @@ export default function App() {
         <Route path="/search" element={<SearchableTable />} />
         <Route path="/check" element={<CheckItem />} />
         <Route path="/createNew" element={<CreateNew />} />
+        <Route path="/updateContent" element={<MobileEditor />} />
+        
         
 
       </Routes>
