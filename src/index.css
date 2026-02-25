@@ -89,3 +89,8 @@ code {
   width: 100% !important;
   display: block !important;
 }
+
+.ql-paste-btn::after {
+          content: '📋'; 
+          font-size: 14px;
+        }
