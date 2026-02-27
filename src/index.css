@@ -94,3 +94,7 @@ code {
           content: '📋'; 
           font-size: 14px;
         }
+
+        .quill .ql-toolbar {
+          height: 60px !important;
+        }

@@ -67,6 +67,8 @@ const MobileEditor = () => {
         'bold', 'italic', 'underline', 'color', 'link'
     ];
 
+    
+
     const handleSave = async () => {
         if (!game) {
             message.warning('Vui lòng chọn game');
@@ -95,13 +97,47 @@ const MobileEditor = () => {
 
     };
 
+    const getContent = async () => {
+        if (!game) {
+            message.warning('Vui lòng chọn game');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            message.info(`Bắt đầu lấy data...`);
+
+            const res = await axios.post(`/getContent`, {
+                gameId: game,
+                action: 'GetDataHtml',
+                selectedDate: selectedDate.format("YYYY/MM/DD")
+            });
+
+            setValue(res.data.data);
+            setLoading(false);
+            message.success('Đã get thành công!');
+
+        } catch (err) {
+            console.error(err);
+            message.error('Lỗi lấy data ' + err.message);
+            setLoading(false);
+        }
+
+    };
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
                 <h3>Edit</h3>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                <Button  onClick={getContent} loading={loading}>
+                    Get
+                </Button>
                 <Button type="primary" onClick={handleSave} loading={loading}>
                     Lưu
                 </Button>
+                </div>
 
             </div>
 

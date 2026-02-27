@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Button,
+  Col,
+  DatePicker,
   List,
   message,
   Select,
@@ -16,6 +18,7 @@ import {
 import axios from './axios-config';
 import TextArea from 'antd/es/input/TextArea';
 import MenuLink from './MenuLink';
+import dayjs from 'dayjs';
 
 export default function CheckItem() {
   const [loading, setLoading] = useState(false);
@@ -25,11 +28,13 @@ export default function CheckItem() {
 
   const [eventOptions, setEventOptions] = useState([]);
   const textAreaRef = useRef(null);
+  const [selectedDate, setSelectedDate] = useState(dayjs());
 
 
   useEffect(() => {
     // fetcEventData();
     fetcGameData();
+    setValue('-Added tracker date for Breed and Earn ( Breeding Weekend ) (26-3/3)<br>-Added tracker date / image/ video for Season ( Valgard ) (26-5/27)<br>-Added tracker date / image/ video for Limited Season Branch ( Wyrmrot Leaderboard Reward Branch ) (26-3/25)<br>-Added tracker date / image/ video for Limited Season Branch ( Wyrmrot Redemption Branch ) (26-3/11)<br>-Added tracker date / image/ video for Limited Season Branch ( Wyrmrot Division Leaderboard Branch ) (26-3/25)<br>-Added gallery <span style="color:#ff0000">Hrimvald, Umbros & Stenrex 🟢</span><br><span style="text-decoration:underline;color:#1155cc">https://my.liquidandgrit.com/library/gallery/hrimvald-umbros-stenrex-war-dragons</span>')
   }, []);
 
 
@@ -156,6 +161,39 @@ export default function CheckItem() {
     }
   };
 
+  const getContent = async () => {
+        if (!game) {
+            message.warning('Vui lòng chọn game');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            message.info(`Bắt đầu lấy data...`);
+
+            const res = await axios.post(`/getContent`, {
+                gameId: game,
+                action: 'GetData',
+                selectedDate: selectedDate.format("YYYY/MM/DD")
+            });
+
+            const realInputDOM = getRealTextAreaDOM(textAreaRef);
+
+            processAndReplaceText(res.data.data, realInputDOM);
+
+            // setValue(res.data.data);
+            setLoading(false);
+            message.success('Đã get thành công!');
+
+        } catch (err) {
+            console.error(err);
+            message.error('Lỗi lấy data ' + err.message);
+            setLoading(false);
+        }
+
+    };
+
   return (
     <div
       style={{
@@ -185,6 +223,19 @@ export default function CheckItem() {
           }}
         />
       </div>
+       <div style={{ display: 'flex', gap: '10px' }}>
+<DatePicker
+                        style={{ width: '100%' }}
+                        value={selectedDate}
+                        onChange={(date) => setSelectedDate(date)}
+                        format="YYYY/MM/DD"
+                    />
+                      <Button  onClick={getContent} loading={loading}>
+                                        Get
+                                    </Button>
+      </div>
+
+
       <div style={{ marginBottom: '10px' }}>
         <TextArea
           value={value}
