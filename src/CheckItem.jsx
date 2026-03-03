@@ -3,9 +3,12 @@ import {
   Button,
   Col,
   DatePicker,
+  Input,
   List,
   message,
+  Modal,
   Select,
+  Spin,
   Typography,
 } from 'antd';
 import {
@@ -14,6 +17,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   LoadingOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import axios from './axios-config';
 import TextArea from 'antd/es/input/TextArea';
@@ -30,11 +34,18 @@ export default function CheckItem() {
   const textAreaRef = useRef(null);
   const [selectedDate, setSelectedDate] = useState(dayjs());
 
+    const tableContainerRef = useRef(null);
+    const filterInputRef = useRef(null);
+    const [searchDate, setSearchDate] = useState(dayjs().subtract(3, "month"));
+      const [popupData, setPopupData] = useState([]);
+  const [isPopupLoading, setIsPopupLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
 
+const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   useEffect(() => {
     // fetcEventData();
     fetcGameData();
-    setValue('-Added tracker date for Breed and Earn ( Breeding Weekend ) (26-3/3)<br>-Added tracker date / image/ video for Season ( Valgard ) (26-5/27)<br>-Added tracker date / image/ video for Limited Season Branch ( Wyrmrot Leaderboard Reward Branch ) (26-3/25)<br>-Added tracker date / image/ video for Limited Season Branch ( Wyrmrot Redemption Branch ) (26-3/11)<br>-Added tracker date / image/ video for Limited Season Branch ( Wyrmrot Division Leaderboard Branch ) (26-3/25)<br>-Added gallery <span style="color:#ff0000">Hrimvald, Umbros & Stenrex 🟢</span><br><span style="text-decoration:underline;color:#1155cc">https://my.liquidandgrit.com/library/gallery/hrimvald-umbros-stenrex-war-dragons</span>')
   }, []);
 
 
@@ -194,6 +205,64 @@ export default function CheckItem() {
 
     };
 
+    const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    const keyword = (e.target || e).value.toLowerCase();
+    if (tableContainerRef.current) {
+      const rows = tableContainerRef.current.querySelectorAll('table.table-cnd tbody tr');
+      rows.forEach((row) => {
+        const cells = row.querySelectorAll('td');
+        const activityText = cells[2]?.innerText.toLowerCase() || '';
+        const altTitleText = cells[3]?.innerText.toLowerCase() || '';
+        const isMatch = activityText.includes(keyword) || altTitleText.includes(keyword);
+        row.style.display = isMatch ? '' : 'none';
+      });
+    }
+  };
+
+  const removeColumnsFromHtml = (htmlString, columnNames) => {
+    if (!htmlString || !columnNames || columnNames.length === 0) return htmlString;
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = htmlString;
+    const headers = Array.from(tempDiv.querySelectorAll("th"));
+    let targetIndexes = [];
+    headers.forEach((th, index) => {
+      if (columnNames.includes(th.innerText.trim())) targetIndexes.push(index);
+    });
+    if (targetIndexes.length === 0) return htmlString;
+    targetIndexes.sort((a, b) => b - a);
+    targetIndexes.forEach(index => headers[index]?.remove());
+    const rows = tempDiv.querySelectorAll("tr");
+    rows.forEach((row) => {
+      const cells = row.querySelectorAll("td");
+      targetIndexes.forEach(index => cells[index]?.remove());
+    });
+    return tempDiv.innerHTML;
+  };
+
+  const handleOpenPopup = async () => {
+    if (!game) {
+            message.warning('Vui lòng chọn game');
+            return;
+        }
+
+    setIsPopupVisible(true);
+    setIsPopupLoading(true);
+    setPopupData(null);
+    try {
+      const response = await axios.post(`/show-data`, { gameId: game, startDate: searchDate.format("YYYY-MM-DD") });
+      const data = response.data;
+      let cleanHtml = removeColumnsFromHtml(data.content_html, ["Game", "Total Days"]);
+      setPopupData(cleanHtml);
+      setIsPopupLoading(false);
+      setSearchTerm('');
+    } catch (error) {
+      console.error(error);
+      setIsPopupLoading(false);
+      setPopupData("<p style='color:red'>Lỗi tải dữ liệu</p>");
+    }
+  };
+
   return (
     <div
       style={{
@@ -220,6 +289,8 @@ export default function CheckItem() {
             setFoundEvents([]);
             setValue('')
             setGame(value)
+
+            getContent();
           }}
         />
       </div>
@@ -233,6 +304,10 @@ export default function CheckItem() {
                       <Button  onClick={getContent} loading={loading}>
                                         Get
                                     </Button>
+
+                                    <Button type="text" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(); }}>
+                  Data
+                </Button>
       </div>
 
 
@@ -351,8 +426,31 @@ export default function CheckItem() {
           </List.Item>
         )}
       />
-
+    <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+            <div style={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}>
+             
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }} onMouseDown={e => e.stopPropagation()}>
+              <DatePicker format="YYYY/MM/DD" style={{ width: '135px' }} value={searchDate} onChange={(date) => { setSearchDate(date); handleOpenPopup(popupSectionIndex, sections[popupSectionIndex].id) }} />
+              <Input ref={filterInputRef} value={searchTerm} placeholder="Tìm..." onChange={handleSearch} style={{ width: '120px' }} />
+            </div>
+          </div>
+        }
+        open={isPopupVisible}
+        width={isMobile ? "95vw" : "fit-content"}
+        onCancel={() => setIsPopupVisible(false)}
+        footer={[<Button key="close" onClick={() => setIsPopupVisible(false)}>Đóng</Button>]}
+        destroyOnClose
+      >
+        <div style={{ height: '70vh', overflow: 'auto', borderTop: '1px solid #f0f0f0' }}>
+          {isPopupLoading ? <div style={{ textAlign: "center", padding: "20px" }}><Spin size="large" /></div> : <div ref={tableContainerRef} dangerouslySetInnerHTML={{ __html: popupData || "<p>Không có dữ liệu</p>" }} />}
+        </div>
+      </Modal>
     </div>
+    
+    
 
   );
 }
