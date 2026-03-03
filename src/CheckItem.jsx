@@ -172,8 +172,8 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
     }
   };
 
-  const getContent = async () => {
-        if (!game) {
+  const getContent = async (gameId) => {
+        if (!gameId) {
             message.warning('Vui lòng chọn game');
             return;
         }
@@ -184,7 +184,7 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
             message.info(`Bắt đầu lấy data...`);
 
             const res = await axios.post(`/getContent`, {
-                gameId: game,
+                gameId: gameId,
                 action: 'GetData',
                 selectedDate: selectedDate.format("YYYY/MM/DD")
             });
@@ -290,7 +290,7 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
             setValue('')
             setGame(value)
 
-            getContent();
+            getContent(value);
           }}
         />
       </div>
@@ -301,7 +301,9 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
                         onChange={(date) => setSelectedDate(date)}
                         format="YYYY/MM/DD"
                     />
-                      <Button  onClick={getContent} loading={loading}>
+                      <Button  onClick={()=>{
+                        getContent(game);
+                      }} loading={loading}>
                                         Get
                                     </Button>
 
@@ -346,16 +348,17 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
             }
 
             // const value = e.target.value;
-            const lines = value.split(/\r?\n/);
+           
             // setValue(value)
-            if (lines.length == 0) {
+            if (value == '') {
               message.warning('Vui lòng điền nội dung cần check');
               setFoundEvents([]);
+              return;
             }
-
+            const lines = value.split(/\r?\n/);
             setLoading(true);
             try {
-              const response = await axios.post(`/check_item`, { gameId: game, checkData: lines });
+              const response = await axios.post(`/check_item`, { gameId: game, checkData: lines, selectedDate: selectedDate.format("YYYY/MM/DD") });
               const data = response.data;
 
 

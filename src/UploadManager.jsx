@@ -11,7 +11,6 @@ import {
   Card,
   Row,
   Col,
-  Grid,
   DatePicker,
   Alert,
 } from 'antd';
@@ -197,6 +196,8 @@ export default function MultiFileUploader() {
     const filesArray = filesInput instanceof File ? [filesInput] : filesInput;
     const formatted = Array.from(filesArray instanceof FileList ? filesArray : filesArray).map((f) => ({
       id: f.uid || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      // FIXED IDENTIFIER: Đưa identifier ra ngoài để cố định, tránh duplicate khi retry
+      identifier: `${f.size}-${f.name.replace(/[^a-zA-Z0-9]/g, '')}-${f.lastModified}`,
       name: f.name,
       size: f.size,
       file: f,
@@ -276,7 +277,10 @@ export default function MultiFileUploader() {
     const file = fileObj.file;
     const filename = fileObj.customName;
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const identifier = `${file.size}-${file.name.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now()}`;
+    
+    // Sử dụng identifier đã được cố định từ lúc handleAddFiles
+    const identifier = fileObj.identifier;
+    
     const safeFilename = filename.trim() === '' ? file.name : filename;
     const safeOrder = totalFilesCnt + index;
 
@@ -304,7 +308,8 @@ export default function MultiFileUploader() {
     }
 
     let completed = 0;
-    const CHUNK_BATCH_SIZE = 5; 
+    // OPTIMIZED: Giảm xuống 3 chunk song song/file để không làm nghẽn browser connection
+    const CHUNK_BATCH_SIZE = 3; 
     for (let i = 0; i < chunksData.length; i += CHUNK_BATCH_SIZE) {
       const batch = chunksData.slice(i, i + CHUNK_BATCH_SIZE);
       await Promise.all(batch.map(formData =>
@@ -330,7 +335,9 @@ export default function MultiFileUploader() {
     try {
       const response = await axios.post(`/getInfo`, { event_id: eventId });
       const currentServerFileCount = response.data.result.gallery.length + 1;
-      const MAX_PARALLEL_FILES = 4; 
+      
+      // OPTIMIZED: Upload 2 file song song. 2 file * 3 chunk = 6 connections (đạt giới hạn Chrome)
+      const MAX_PARALLEL_FILES = 2; 
 
       for (let i = 0; i < targets.length; i += MAX_PARALLEL_FILES) {
         const fileBatch = targets.slice(i, i + MAX_PARALLEL_FILES);
@@ -409,7 +416,7 @@ export default function MultiFileUploader() {
                   <span> | </span>
                   <Text copyable={{ text: searchDate.format('M/D/YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('M/D/YYYY')}</Text>
                   <span> | </span>
-                  <Text copyable={{ text: currentDate.format('M-D-YY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('M-D-YY')}</Text>
+                  <Text copyable={{ text: searchDate.format('M-D-YY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('M-D-YY')}</Text>
                 </div>
               </div>
 
@@ -428,7 +435,6 @@ export default function MultiFileUploader() {
                 </div>
               </Card>
 
-              {/* Ô UPLOAD TO CHUẨN (KHÔI PHỤC THEO HÌNH 3) */}
               {fileList.length === 0 && (
                 <Upload
                   multiple
@@ -438,7 +444,7 @@ export default function MultiFileUploader() {
                 >
                   <div style={{ 
                     height: 100, 
-                    width: '100%', // Dùng 100% để rộng ngang đúng như hình 3
+                    width: '100%', 
                     border: '2px dashed #d9d9d9', 
                     borderRadius: '8px', 
                     backgroundColor: '#fafafa', 
