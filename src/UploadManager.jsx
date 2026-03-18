@@ -22,6 +22,7 @@ import {
   InboxOutlined,
   SyncOutlined,
   SnippetsOutlined,
+  ExpandOutlined,
 } from '@ant-design/icons';
 import axios from './axios-config';
 import dayjs from 'dayjs';
@@ -431,6 +432,7 @@ export default function MultiFileUploader() {
                   <Button danger onClick={clearAll} disabled={fileList.length === 0} size="small">Clear All</Button>
                   {urlEdit && <a href={urlEdit} target="_blank" rel="noopener noreferrer">Edit Gallery</a>}
                   {url && <a href={url} target="_blank" rel="noopener noreferrer">Xem Gallery</a>}
+                  {eventId && <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); window.open('vewImage/' + eventId, '_blank'); }} /> }
                   <Text copyable={{ text: eventName || '' }} strong>{eventName || ''}</Text>
                 </div>
               </Card>

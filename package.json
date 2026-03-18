@@ -14,7 +14,8 @@
     "react-dom": "^18.0.0",
     "react-quill": "^2.0.0",
     "react-router-dom": "^7.6.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "yet-another-react-lightbox": "^3.29.1"
   },
   "scripts": {
     "start": "react-scripts start",

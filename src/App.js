@@ -7,6 +7,7 @@ import SearchableTable from "./SearchableTable";
 import CheckItem from "./CheckItem";
 import CreateNew from "./CreateNew";
 import MobileEditor from "./MobileEditor";
+import ViewImage from "./ViewImage";
 
 export default function App() {
   return (
@@ -19,7 +20,7 @@ export default function App() {
         <Route path="/check" element={<CheckItem />} />
         <Route path="/createNew" element={<CreateNew />} />
         <Route path="/updateContent" element={<MobileEditor />} />
-        
+        <Route path="/vewImage/:event_id" element={<ViewImage />} />
         
 
       </Routes>

@@ -18,6 +18,7 @@ import {
   CloseCircleOutlined,
   LoadingOutlined,
   DatabaseOutlined,
+  ExpandOutlined,
 } from '@ant-design/icons';
 import axios from './axios-config';
 import TextArea from 'antd/es/input/TextArea';
@@ -404,6 +405,13 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
               {item.name}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+               {item.url && (
+                <Button
+                  type="text"
+                  icon={<ExpandOutlined />}
+                  onClick={() => window.open(item.viewImage, '_blank')}
+                />
+              )}
               {item.url && (
                 <Button
                   type="text"
