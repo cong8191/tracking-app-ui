@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import dayjs from "dayjs";
-import { Row, Col, DatePicker, Typography, Empty, Button, Space, Card, Spin, message } from "antd";
+import { Row, Col, DatePicker, Typography, Empty, Button, Space, Card, Spin, message, Modal } from "antd";
 import { useParams } from "react-router-dom"; 
+import { DeleteOutlined, QuestionCircleOutlined, ReloadOutlined } from "@ant-design/icons";
 import axios from './axios-config';
 
 // Lightbox & Plugins
@@ -34,18 +35,24 @@ const ViewImage = () => {
 
   const isVideo = (ext) => ["mp4", "mov", "webm", "ogg"].includes(ext);
 
-  // Filter dữ liệu
+  // 1. Filter dữ liệu
   const filteredData = useMemo(() => {
     const list = apiData?.gallery || [];
     if (!startDate) return list;
     const startOfSelectedDate = startDate.startOf("day");
+    
     return list.filter((item) => {
       const itemDate = dayjs.unix(Number(item.large_added));
       return itemDate.isAfter(startOfSelectedDate) || itemDate.isSame(startOfSelectedDate, "day");
     });
-  }, [apiData, startDate]);
+  }, [apiData, startDate]); 
 
-  // Callback nhận diện phần tử cuối để load thêm
+  // 2. Cắt mảng hiển thị (Lazy Render)
+  const visibleData = useMemo(() => {
+    return filteredData.slice(0, displayLimit);
+  }, [filteredData, displayLimit]);
+
+  // 3. Nhận diện phần tử cuối để load thêm
   const lastElementRef = useCallback(node => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
@@ -57,18 +64,20 @@ const ViewImage = () => {
     });
     
     if (node) observer.current.observe(node);
-  }, [loading, displayLimit, filteredData.length]);
+  }, [loading, displayLimit, filteredData]); 
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      setApiData({ gallery: [] }); 
+      setDisplayLimit(24);
+
       const response = await axios.post(`/vewImage`, { event_id });
       const resultData = response.data.result || { gallery: [] };
-      setApiData(resultData);
-      setDisplayLimit(24);
-        setGalleryName(resultData.gallery_name || '');
-      // Cập nhật Title trình duyệt
-      document.title = resultData.gallery_name || '';
+      
+      setApiData({ ...resultData });
+      setGalleryName(resultData.gallery_name || '');
+      document.title = resultData.gallery_name || 'Gallery';
       
     } catch (error) {
       console.error("API Error:", error);
@@ -83,15 +92,51 @@ const ViewImage = () => {
     return () => { document.title = "React App"; };
   }, [event_id]);
 
-  const visibleData = useMemo(() => {
-    return filteredData.slice(0, displayLimit);
-  }, [filteredData, displayLimit]);
+  // ==========================================================
+  // HÀM XỬ LÝ XÓA ẢNH (BẠN ĐƯA CODE API VÀO ĐÂY)
+  // ==========================================================
+  const handleDeleteImage = (item) => {
+    Modal.confirm({
+      title: 'Xác nhận xóa?',
+      icon: <QuestionCircleOutlined style={{ color: 'red' }} />,
+      content: `Bạn có chắc chắn muốn xóa "${item.name}"?`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          // Bắt đầu hiệu ứng loading cho nút xóa
+          message.loading({ content: 'Đang xử lý xóa...', key: 'del_task' });
+
+          await axios.post(`/delete_file`, { gallery_id: event_id, file: item });
+
+          /* ------------------------------------------------------
+             CHỖ NÀY: BẠN CHÈN CODE GỌI API XÓA CỦA BẠN VÀO ĐÂY
+             Ví dụ: 
+             const res = await axios.post('/your-api-delete', { id: item.id });
+             if (res.data.success) { ... }
+          ------------------------------------------------------- */
+
+          // Sau khi gọi API thành công, xóa ảnh khỏi giao diện (Client-side)
+          setApiData(prev => ({
+            ...prev,
+            gallery: prev.gallery.filter(g => g.id !== item.id)
+          }));
+
+          message.success({ content: 'Đã xóa thành công!', key: 'del_task', duration: 2 });
+        } catch (error) {
+          message.error({ content: 'Lỗi khi xóa ảnh!', key: 'del_task' });
+        }
+      },
+    });
+  };
 
   const slides = useMemo(() => {
     return filteredData.map((item) => {
       const ext = getFileExt(item.file_url);
       const videoStatus = isVideo(ext);
       return {
+        // original: {...item},
         src: item.large,
         alt: item.name,
         thumbnail: item.small,
@@ -109,16 +154,17 @@ const ViewImage = () => {
   return (
     <div style={{ padding: "0 20px 20px 20px", background: "#f5f5f5", minHeight: "100vh" }}>
       
-      {/* CỐ ĐỊNH HEADER */}
+      {/* HEADER CỐ ĐỊNH */}
       <div style={stickyHeaderWrapper}>
         <div style={filterContainerStyle}>
           <Space size="middle">
-            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>Gallery : {galleryName}</Title>
+            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+               Gallery: <span style={{ color: '#1890ff' }}>{galleryName || event_id}</span>
+            </Title>
             <DatePicker 
               value={startDate} 
               onChange={(date) => { setStartDate(date); setDisplayLimit(24); }} 
               format="DD/MM/YYYY"
-              placeholder="Select date"
             />
             <Button 
               type={startDate === null ? "primary" : "default"} 
@@ -126,17 +172,18 @@ const ViewImage = () => {
             >
               Tất cả ảnh
             </Button>
+            <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Làm mới</Button>
           </Space>
 
           <Text type="secondary" style={{ fontSize: '13px' }}>
-             Tổng: {filteredData.length} | Đang hiện: {visibleData.length}
+              Tổng: {filteredData.length} | Đang hiện: {visibleData.length}
           </Text>
         </div>
       </div>
 
-      {/* DANH SÁCH CARD */}
+      {/* DANH SÁCH ẢNH */}
       <div style={{ marginTop: '10px' }}>
-        <Spin spinning={loading && visibleData.length === 0} tip="Đang tải dữ liệu..." size="large">
+        <Spin spinning={loading && visibleData.length === 0} tip="Đang tải..." size="large">
           <div style={{ minHeight: '200px' }}>
             {visibleData.length > 0 ? (
               <Row gutter={[12, 24]}>
@@ -146,6 +193,7 @@ const ViewImage = () => {
                   return (
                     <Col xs={12} sm={8} md={6} lg={4} xl={3} key={item.id} ref={isLast ? lastElementRef : null}>
                       <Card
+                        className="custom-image-card"
                         hoverable
                         bodyStyle={{ padding: "10px" }}
                         cover={
@@ -158,6 +206,20 @@ const ViewImage = () => {
                                 onLoad={(e) => e.target.style.opacity = 1}
                             />
                             {isVideo(ext) && <div style={playIconOverlay}>▶</div>}
+                            
+                            {/* NÚT XÓA XUẤT HIỆN KHI HOVER */}
+                            <Button
+                              className="btn-delete-hover"
+                              type="primary"
+                              danger
+                              shape="circle"
+                              icon={<DeleteOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Ngăn mở Lightbox
+                                handleDeleteImage(item);
+                              }}
+                              style={deleteButtonStyle}
+                            />
                           </div>
                         }
                         onClick={() => setIndex(idx)}
@@ -167,9 +229,6 @@ const ViewImage = () => {
                              {item.name}
                            </Text>
                         </div>
-                        {/* <Text type="secondary" style={{ fontSize: "11px", marginTop: "4px", display: "block" }}>
-                          {dayjs.unix(item.large_added).format("DD/MM/YYYY")}
-                        </Text> */}
                       </Card>
                     </Col>
                   );
@@ -196,6 +255,15 @@ const ViewImage = () => {
         plugins={[Thumbnails, Zoom, Video]}
         video={{ autoPlay: true, controls: true }}
       />
+
+      {/* CSS ĐỂ HOVER HIỆN NÚT XÓA */}
+      <style>{`
+        .custom-image-card:hover .btn-delete-hover {
+          opacity: 1 !important;
+          visibility: visible !important;
+          transform: scale(1) !important;
+        }
+      `}</style>
     </div>
   );
 };
@@ -244,9 +312,20 @@ const playIconOverlay = {
   color: "#fff",
   backgroundColor: "rgba(0,0,0,0.5)",
   borderRadius: "50%",
-  width: "45px", height: "45px",
-  fontSize: "22px",
+  width: "40px", height: "40px",
+  fontSize: "20px",
   display: "flex", alignItems: "center", justifyContent: "center"
+};
+
+const deleteButtonStyle = {
+  position: "absolute",
+  top: "8px",
+  right: "8px",
+  opacity: 0,
+  visibility: "hidden",
+  transform: "scale(0.8)",
+  transition: 'all 0.2s ease-in-out',
+  zIndex: 10
 };
 
 export default ViewImage;

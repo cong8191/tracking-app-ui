@@ -1,33 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  Button,
-  Progress,
-  List,
-  Typography,
-  Input,
-  message,
-  AutoComplete,
-  Upload,
-  Card,
-  Row,
-  Col,
-  DatePicker,
-  Alert,
+  Button, Progress, List, Typography, Input, message, AutoComplete, Upload, Card, Row, Col, DatePicker, Alert,
 } from 'antd';
 import {
-  UploadOutlined,
-  DeleteOutlined,
-  HolderOutlined,
-  PlusCircleOutlined,
-  InboxOutlined,
-  SyncOutlined,
-  SnippetsOutlined,
-  ExpandOutlined,
+  UploadOutlined, DeleteOutlined, HolderOutlined, PlusCircleOutlined, InboxOutlined, SyncOutlined, SnippetsOutlined, ExpandOutlined,
 } from '@ant-design/icons';
 import axios from './axios-config';
 import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
-dayjs.extend(advancedFormat);
 
 // --- DND KIT IMPORTS ---
 import { 
@@ -48,12 +28,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import MenuLink from './MenuLink';
 
+dayjs.extend(advancedFormat);
 const { Text } = Typography;
 
-const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
+const CHUNK_SIZE = 5 * 1024 * 1024; 
 const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
 
-// --- UTILS ---
 function cleanFilename(name) {
   const isVideo = VIDEO_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
   if (isVideo) return name;
@@ -194,25 +174,25 @@ export default function MultiFileUploader() {
   };
 
   const handleAddFiles = (filesInput) => {
-    const filesArray = filesInput instanceof File ? [filesInput] : filesInput;
-    const formatted = Array.from(filesArray instanceof FileList ? filesArray : filesArray).map((f) => ({
-      id: f.uid || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      // FIXED IDENTIFIER: Đưa identifier ra ngoài để cố định, tránh duplicate khi retry
-      identifier: `${f.size}-${f.name.replace(/[^a-zA-Z0-9]/g, '')}-${f.lastModified}`,
-      name: f.name,
-      size: f.size,
-      file: f,
-      customName: cleanFilename(f.name),
-    }));
+    const filesArray = filesInput instanceof File ? [filesInput] : Array.from(filesInput instanceof FileList ? filesInput : filesInput);
+    const formatted = filesArray.map((f) => {
+      const uniqueId = Math.random().toString(36).substr(2, 5);
+      return {
+        id: f.uid || `${Date.now()}-${uniqueId}`,
+        identifier: `${f.size}-${f.name.replace(/[^a-zA-Z0-9]/g, '')}-${f.lastModified}-${uniqueId}`,
+        name: f.name,
+        size: f.size,
+        file: f,
+        customName: cleanFilename(f.name),
+      }
+    });
 
-    setTimeout(() => {
-      setFileList((prev) => [...prev, ...formatted]);
-      setProgressMap((prev) => {
-        const newMap = { ...prev };
-        formatted.forEach(f => { if (!newMap[f.name]) newMap[f.name] = 0; });
-        return newMap;
-      });
-    }, 0);
+    setFileList((prev) => [...prev, ...formatted]);
+    setProgressMap((prev) => {
+      const newMap = { ...prev };
+      formatted.forEach(f => { if (!newMap[f.id]) newMap[f.id] = 0; });
+      return newMap;
+    });
   };
 
   const handleNameChange = (index, newName) => {
@@ -256,36 +236,35 @@ export default function MultiFileUploader() {
     setUploading(false);
   };
 
+  // --- SỬA LOGIC RETRY ---
   const uploadChunkWithRetry = async (formData, maxRetries = 3) => {
-    const shouldRetry = (error) => (!error.response || error.response.status >= 500);
     for (let i = 0; i < maxRetries; i++) {
       const controller = new AbortController();
       try {
         const response = await axios.post('/upload', formData, {
-          timeout: 600000, 
+          timeout: 120000, 
           signal: controller.signal, 
         });
         return response; 
       } catch (err) {
         controller.abort();
-        if (i === maxRetries - 1 || !shouldRetry(err)) throw err;
-        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        const isNetworkError = !err.response;
+        const isServerError = err.response && err.response.status >= 500;
+        
+        // Chỉ retry khi là lỗi mạng thực sự hoặc server 5xx
+        if (i === maxRetries - 1 || (!isNetworkError && !isServerError)) throw err;
+        await new Promise(r => setTimeout(r, 2000 * (i + 1)));
       }
     }
   };
 
-  const processSingleFile = async (fileObj, index, totalFilesCnt) => {
-    const file = fileObj.file;
-    const filename = fileObj.customName;
+  // --- HÀM XỬ LÝ 1 FILE (BATCH CHUNK) ---
+  const processSingleFile = async (fileObj, orderIndex) => {
+    const { file, customName, identifier, id } = fileObj;
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    
-    // Sử dụng identifier đã được cố định từ lúc handleAddFiles
-    const identifier = fileObj.identifier;
-    
-    const safeFilename = filename.trim() === '' ? file.name : filename;
-    const safeOrder = totalFilesCnt + index;
+    const safeFilename = customName.trim() === '' ? file.name : customName;
 
-    const chunksData = [];
+    const chunksFormData = [];
     for (let i = 0; i < totalChunks; i++) {
       const start = i * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, file.size);
@@ -301,82 +280,78 @@ export default function MultiFileUploader() {
       formData.append('flowTotalChunks', totalChunks);
       formData.append('relate', 'gallery_version');
       formData.append('id', eventId);
-      formData.append('order_index', safeOrder);
+      formData.append('order_index', orderIndex);
       formData.append('file', chunk);
       formData.append('customFilename', safeFilename);
       if (i === totalChunks - 1) formData.append('isLastChunk', 'true');
-      chunksData.push(formData);
+      chunksFormData.push(formData);
     }
 
+    const normalChunks = chunksFormData.slice(0, -1);
+    const lastChunk = chunksFormData[chunksFormData.length - 1];
     let completed = 0;
-    // OPTIMIZED: Giảm xuống 3 chunk song song/file để không làm nghẽn browser connection
-    const CHUNK_BATCH_SIZE = 3; 
-    for (let i = 0; i < chunksData.length; i += CHUNK_BATCH_SIZE) {
-      const batch = chunksData.slice(i, i + CHUNK_BATCH_SIZE);
-      await Promise.all(batch.map(formData =>
-        uploadChunkWithRetry(formData).then(() => {
+    
+    // Mở 3 luồng chunk song song cho 1 file
+    const CHUNK_CONCURRENCY = 5; 
+
+    for (let i = 0; i < normalChunks.length; i += CHUNK_CONCURRENCY) {
+      const batch = normalChunks.slice(i, i + CHUNK_CONCURRENCY);
+      await Promise.all(batch.map(form => 
+        uploadChunkWithRetry(form).then(() => {
           completed++;
-          setProgressMap((prev) => ({
-            ...prev,
-            [file.name]: Math.round((completed / totalChunks) * 100)
-          }));
+          setProgressMap(prev => ({ ...prev, [id]: Math.round((completed / totalChunks) * 100) }));
         })
       ));
     }
-    setProgressMap((prev) => ({ ...prev, [file.name]: 100 }));
-    setFailedFiles(prev => prev.filter(id => id !== fileObj.id));
+
+    // Gửi chunk cuối cùng sau khi các chunk trước đã xong
+    await uploadChunkWithRetry(lastChunk);
+    setProgressMap(prev => ({ ...prev, [id]: 100 }));
   };
 
   const uploadFiles = async (retryOnly = false) => {
+    if (uploading) return;
     if (!eventId) { message.warning('Vui lòng chọn Event ID.'); return; }
+    
     const targets = retryOnly ? fileList.filter(f => failedFiles.includes(f.id)) : fileList;
     if (targets.length === 0) return;
 
     setUploading(true);
     try {
-      const response = await axios.post(`/getInfo`, { event_id: eventId });
-      const currentServerFileCount = response.data.result.gallery.length + 1;
+      const infoRes = await axios.post(`/getInfo`, { event_id: eventId });
+      const baseCount = infoRes.data.result.gallery.length;
       
-      // OPTIMIZED: Upload 2 file song song. 2 file * 3 chunk = 6 connections (đạt giới hạn Chrome)
-      const MAX_PARALLEL_FILES = 2; 
+      // Mở 2 luồng File song song (Tổng connection tối đa ~6)
+      const FILE_CONCURRENCY = 2; 
 
-      for (let i = 0; i < targets.length; i += MAX_PARALLEL_FILES) {
-        const fileBatch = targets.slice(i, i + MAX_PARALLEL_FILES);
-        const results = await Promise.allSettled(fileBatch.map((f, idx) => processSingleFile(f, i + idx, currentServerFileCount)));
-        results.forEach((res, idx) => {
-          if (res.status === 'rejected') setFailedFiles(prev => [...new Set([...prev, fileBatch[idx].id])]);
-        });
+      for (let i = 0; i < targets.length; i += FILE_CONCURRENCY) {
+        const batch = targets.slice(i, i + FILE_CONCURRENCY);
+        
+        await Promise.allSettled(batch.map((f) => {
+          // Tính toán orderIndex dựa trên vị trí thực tế trong fileList hiện tại
+          const globalIdx = fileList.findIndex(item => item.id === f.id);
+          return processSingleFile(f, baseCount + 1 + globalIdx)
+            .then(() => {
+              setFailedFiles(prev => prev.filter(fid => fid !== f.id));
+            })
+            .catch(() => {
+              setFailedFiles(prev => [...new Set([...prev, f.id])]);
+            });
+        }));
       }
     } catch (err) { message.error("Lỗi server."); }
     setUploading(false);
     if (failedFiles.length === 0) message.success('Hoàn tất!');
   };
 
-  const handleDragEnter = (e) => {
-    e.preventDefault(); e.stopPropagation();
-    dragCounter.current++;
-    if (e.dataTransfer.items?.length > 0) setIsDraggingFile(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault(); e.stopPropagation();
-    dragCounter.current--;
-    if (dragCounter.current === 0) setIsDraggingFile(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault(); e.stopPropagation();
-    setIsDraggingFile(false);
-    dragCounter.current = 0;
-    if (e.dataTransfer.files?.length > 0) handleAddFiles(e.dataTransfer.files);
-  };
+  const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current++; if (e.dataTransfer.items?.length > 0) setIsDraggingFile(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current--; if (dragCounter.current === 0) setIsDraggingFile(false); };
+  const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingFile(false); dragCounter.current = 0; if (e.dataTransfer.files?.length > 0) handleAddFiles(e.dataTransfer.files); };
 
   const currentDate = dayjs();
 
   return (
-    <div onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} 
-         onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
-         style={{ position: 'relative', minHeight: '100vh', width: '100%' }}>
+    <div onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} style={{ position: 'relative', minHeight: '100vh', width: '100%' }}>
       
       {isDraggingFile && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(24, 144, 255, 0.1)', border: '3px dashed #1890ff', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -395,7 +370,6 @@ export default function MultiFileUploader() {
                 <Alert message={`Lỗi ở ${failedFiles.length} file.`} type="error" showIcon action={<Button size="small" danger icon={<SyncOutlined />} onClick={() => uploadFiles(true)}>Retry</Button>} />
               )}
 
-              {/* Phần hiển thị Ngày tháng */}
               <div style={{ margin: '10px 0 20px 0', textAlign: 'center' }}>
                 <div>
                   <span style={{ display: 'inline-block', width: '101px' }}>Current Date: </span>
@@ -465,7 +439,7 @@ export default function MultiFileUploader() {
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={fileList.map((f) => f.id)} strategy={verticalListSortingStrategy}>
                   <List bordered dataSource={fileList} style={{ background: '#fff' }} renderItem={(fileObj, index) => (
-                    <SortableItem key={fileObj.id} fileObj={fileObj} index={index} progress={progressMap[fileObj.name]} isFailed={failedFiles.includes(fileObj.id)} onNameChange={handleNameChange} onAddMore={handleAddFiles} onDelete={(idx) => setFileList((prev) => prev.filter((_, i) => i !== idx))} onPasteAtCursor={handlePasteAtCursor} />
+                    <SortableItem key={fileObj.id} fileObj={fileObj} index={index} progress={progressMap[fileObj.id]} isFailed={failedFiles.includes(fileObj.id)} onNameChange={handleNameChange} onAddMore={handleAddFiles} onDelete={(idx) => setFileList((prev) => prev.filter((_, i) => i !== idx))} onPasteAtCursor={handlePasteAtCursor} />
                   )} />
                 </SortableContext>
               </DndContext>
