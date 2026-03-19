@@ -35,22 +35,31 @@ const ViewImage = () => {
 
   const isVideo = (ext) => ["mp4", "mov", "webm", "ogg"].includes(ext);
 
-  // 1. Filter dữ liệu
-  const filteredData = useMemo(() => {
+  // ==========================================================
+  // TỐI ƯU: GỘP FILTER VÀ SLICE VÀO CHUNG 1 MEMO
+  // Giúp data đồng bộ tức thì, không bị lệch pha state
+  // ==========================================================
+  const { filteredData, visibleData } = useMemo(() => {
     const list = apiData?.gallery || [];
-    if (!startDate) return list;
-    const startOfSelectedDate = startDate.startOf("day");
-    
-    return list.filter((item) => {
-      const itemDate = dayjs.unix(Number(item.large_added));
-      return itemDate.isAfter(startOfSelectedDate) || itemDate.isSame(startOfSelectedDate, "day");
-    });
-  }, [apiData, startDate]); 
+    let filtered = list;
 
-  // 2. Cắt mảng hiển thị (Lazy Render)
-  const visibleData = useMemo(() => {
-    return filteredData.slice(0, displayLimit);
-  }, [filteredData, displayLimit]);
+    // 1. Thực hiện Filter
+    if (startDate) {
+      const startOfSelectedDate = startDate.startOf("day");
+      filtered = list.filter((item) => {
+        const itemDate = dayjs.unix(Number(item.small_added));
+        return itemDate.isAfter(startOfSelectedDate) || itemDate.isSame(startOfSelectedDate, "day");
+      });
+    }
+
+    // 2. Thực hiện Slice ngay lập tức
+    const visible = filtered.slice(0, displayLimit);
+
+    return { 
+      filteredData: filtered, 
+      visibleData: visible 
+    };
+  }, [apiData, startDate, displayLimit]);
 
   // 3. Nhận diện phần tử cuối để load thêm
   const lastElementRef = useCallback(node => {
@@ -64,13 +73,14 @@ const ViewImage = () => {
     });
     
     if (node) observer.current.observe(node);
-  }, [loading, displayLimit, filteredData]); 
+  }, [loading, displayLimit, filteredData.length]); 
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      setApiData({ gallery: [] }); 
+      // Reset limit về mặc định khi chuyển event hoặc refresh
       setDisplayLimit(24);
+      setApiData({ gallery: [] }); 
 
       const response = await axios.post(`/vewImage`, { event_id });
       const resultData = response.data.result || { gallery: [] };
@@ -92,9 +102,6 @@ const ViewImage = () => {
     return () => { document.title = "React App"; };
   }, [event_id]);
 
-  // ==========================================================
-  // HÀM XỬ LÝ XÓA ẢNH (BẠN ĐƯA CODE API VÀO ĐÂY)
-  // ==========================================================
   const handleDeleteImage = (item) => {
     Modal.confirm({
       title: 'Xác nhận xóa?',
@@ -105,19 +112,12 @@ const ViewImage = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          // Bắt đầu hiệu ứng loading cho nút xóa
           message.loading({ content: 'Đang xử lý xóa...', key: 'del_task' });
 
+          // Gọi API xóa của bạn
           await axios.post(`/delete_file`, { gallery_id: event_id, file: item });
 
-          /* ------------------------------------------------------
-             CHỖ NÀY: BẠN CHÈN CODE GỌI API XÓA CỦA BẠN VÀO ĐÂY
-             Ví dụ: 
-             const res = await axios.post('/your-api-delete', { id: item.id });
-             if (res.data.success) { ... }
-          ------------------------------------------------------- */
-
-          // Sau khi gọi API thành công, xóa ảnh khỏi giao diện (Client-side)
+          // Cập nhật giao diện ngay lập tức bằng cách lọc bỏ phần tử đã xóa
           setApiData(prev => ({
             ...prev,
             gallery: prev.gallery.filter(g => g.id !== item.id)
@@ -136,7 +136,6 @@ const ViewImage = () => {
       const ext = getFileExt(item.file_url);
       const videoStatus = isVideo(ext);
       return {
-        // original: {...item},
         src: item.large,
         alt: item.name,
         thumbnail: item.small,
@@ -154,7 +153,6 @@ const ViewImage = () => {
   return (
     <div style={{ padding: "0 20px 20px 20px", background: "#f5f5f5", minHeight: "100vh" }}>
       
-      {/* HEADER CỐ ĐỊNH */}
       <div style={stickyHeaderWrapper}>
         <div style={filterContainerStyle}>
           <Space size="middle">
@@ -181,7 +179,6 @@ const ViewImage = () => {
         </div>
       </div>
 
-      {/* DANH SÁCH ẢNH */}
       <div style={{ marginTop: '10px' }}>
         <Spin spinning={loading && visibleData.length === 0} tip="Đang tải..." size="large">
           <div style={{ minHeight: '200px' }}>
@@ -207,7 +204,6 @@ const ViewImage = () => {
                             />
                             {isVideo(ext) && <div style={playIconOverlay}>▶</div>}
                             
-                            {/* NÚT XÓA XUẤT HIỆN KHI HOVER */}
                             <Button
                               className="btn-delete-hover"
                               type="primary"
@@ -215,7 +211,7 @@ const ViewImage = () => {
                               shape="circle"
                               icon={<DeleteOutlined />}
                               onClick={(e) => {
-                                e.stopPropagation(); // Ngăn mở Lightbox
+                                e.stopPropagation();
                                 handleDeleteImage(item);
                               }}
                               style={deleteButtonStyle}
@@ -256,7 +252,6 @@ const ViewImage = () => {
         video={{ autoPlay: true, controls: true }}
       />
 
-      {/* CSS ĐỂ HOVER HIỆN NÚT XÓA */}
       <style>{`
         .custom-image-card:hover .btn-delete-hover {
           opacity: 1 !important;
@@ -268,7 +263,7 @@ const ViewImage = () => {
   );
 };
 
-// --- STYLES ---
+// --- STYLES GIỮ NGUYÊN ---
 const stickyHeaderWrapper = {
   position: "sticky",
   top: 0,

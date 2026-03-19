@@ -1,13 +1,19 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Button, Progress, List, Typography, Input, message, AutoComplete, Upload, Card, Row, Col, DatePicker, Alert,
 } from 'antd';
 import {
-  UploadOutlined, DeleteOutlined, HolderOutlined, PlusCircleOutlined, InboxOutlined, SyncOutlined, SnippetsOutlined, ExpandOutlined,
+  UploadOutlined, DeleteOutlined, HolderOutlined, PlusCircleOutlined, InboxOutlined, SyncOutlined, SnippetsOutlined, ExpandOutlined, EyeOutlined
 } from '@ant-design/icons';
 import axios from './axios-config';
 import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
+
+// --- LIGHTBOX IMPORTS ---
+import Lightbox from "yet-another-react-lightbox";
+import Video from "yet-another-react-lightbox/plugins/video";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
 
 // --- DND KIT IMPORTS ---
 import { 
@@ -44,7 +50,7 @@ function cleanFilename(name) {
 }
 
 // --- COMPONENT CON: SORTABLE ITEM ---
-const SortableItem = ({ fileObj, index, onNameChange, onDelete, onAddMore, progress, isFailed, onPasteAtCursor }) => {
+const SortableItem = ({ fileObj, index, onNameChange, onDelete, onAddMore, progress, isFailed, onPasteAtCursor, onPreview }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: fileObj.id });
   const inputRef = useRef(null);
 
@@ -68,6 +74,13 @@ const SortableItem = ({ fileObj, index, onNameChange, onDelete, onAddMore, progr
           borderLeft: isFailed ? '4px solid #ff4d4f' : 'none' 
         }}
         actions={[
+          <Button
+            key="preview"
+            type="text"
+            icon={<EyeOutlined style={{ fontSize: '18px', color: '#52c41a' }} />}
+            onClick={() => onPreview(index)}
+            title="Xem trước"
+          />,
           <Button
             key="paste-action"
             type="text"
@@ -143,16 +156,44 @@ export default function MultiFileUploader() {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounter = useRef(0); 
 
+  const [previewIndex, setPreviewIndex] = useState(-1);
+
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 10, 
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  const slides = useMemo(() => {
+    return fileList.map((f) => {
+      const fileName = f.name.toLowerCase();
+      const isVid = VIDEO_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+      const blobUrl = URL.createObjectURL(f.file);
+
+      if (isVid) {
+        return {
+          type: "video",
+          width: 1280,
+          height: 720,
+          sources: [
+            { 
+              src: blobUrl, 
+              type: fileName.endsWith('.mov') ? 'video/mp4' : `video/${fileName.split('.').pop()}` 
+            }
+          ],
+        };
+      }
+      return { src: blobUrl };
+    });
+  }, [fileList]);
+
+  useEffect(() => {
+    return () => {
+      slides.forEach(s => {
+        if (s.src) URL.revokeObjectURL(s.src);
+        if (s.sources) URL.revokeObjectURL(s.sources[0].src);
+      });
+    };
+  }, [slides]);
 
   const handlePasteAtCursor = async (index, inputRefComponent) => {
     try {
@@ -168,9 +209,7 @@ export default function MultiFileUploader() {
         input.focus();
         input.setSelectionRange(start + text.length, start + text.length);
       }, 0);
-    } catch (err) {
-      message.error("Lỗi Clipboard.");
-    }
+    } catch (err) { message.error("Lỗi Clipboard."); }
   };
 
   const handleAddFiles = (filesInput) => {
@@ -214,20 +253,21 @@ export default function MultiFileUploader() {
     }
   };
 
-  useEffect(() => { fetcEventData(); }, []);
-
-  const fetcEventData = async () => {
-    try {
-      const response = await axios.get(`/events`);
-      setEventOptions(response.data.map((item) => ({
-        name: item.name,
-        value: item.id,
-        label: item.g_name ? `${item.name} ( ${item.g_name} ) - ${item.gameName}` : `${item.name} - ${item.gameName}`,
-        event_id: item.gallery_id,
-        post_slug: item.post_slug,
-      })));
-    } catch (err) { console.error('❌ GET error:', err); }
-  };
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get(`/events`);
+        setEventOptions(response.data.map((item) => ({
+          name: item.name,
+          value: item.id,
+          label: item.g_name ? `${item.name} ( ${item.g_name} ) - ${item.gameName}` : `${item.name} - ${item.gameName}`,
+          event_id: item.gallery_id,
+          post_slug: item.post_slug,
+        })));
+      } catch (err) { console.error('❌ GET error:', err); }
+    };
+    fetchEvents();
+  }, []);
 
   const clearAll = () => {
     setFileList([]);
@@ -236,29 +276,22 @@ export default function MultiFileUploader() {
     setUploading(false);
   };
 
-  // --- SỬA LOGIC RETRY ---
   const uploadChunkWithRetry = async (formData, maxRetries = 3) => {
     for (let i = 0; i < maxRetries; i++) {
       const controller = new AbortController();
       try {
-        const response = await axios.post('/upload', formData, {
-          timeout: 120000, 
-          signal: controller.signal, 
-        });
+        const response = await axios.post('/upload', formData, { timeout: 120000, signal: controller.signal });
         return response; 
       } catch (err) {
         controller.abort();
         const isNetworkError = !err.response;
         const isServerError = err.response && err.response.status >= 500;
-        
-        // Chỉ retry khi là lỗi mạng thực sự hoặc server 5xx
         if (i === maxRetries - 1 || (!isNetworkError && !isServerError)) throw err;
         await new Promise(r => setTimeout(r, 2000 * (i + 1)));
       }
     }
   };
 
-  // --- HÀM XỬ LÝ 1 FILE (BATCH CHUNK) ---
   const processSingleFile = async (fileObj, orderIndex) => {
     const { file, customName, identifier, id } = fileObj;
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -290,21 +323,16 @@ export default function MultiFileUploader() {
     const normalChunks = chunksFormData.slice(0, -1);
     const lastChunk = chunksFormData[chunksFormData.length - 1];
     let completed = 0;
-    
-    // Mở 3 luồng chunk song song cho 1 file
     const CHUNK_CONCURRENCY = 5; 
 
     for (let i = 0; i < normalChunks.length; i += CHUNK_CONCURRENCY) {
       const batch = normalChunks.slice(i, i + CHUNK_CONCURRENCY);
-      await Promise.all(batch.map(form => 
-        uploadChunkWithRetry(form).then(() => {
-          completed++;
-          setProgressMap(prev => ({ ...prev, [id]: Math.round((completed / totalChunks) * 100) }));
-        })
-      ));
+      await Promise.all(batch.map(form => uploadChunkWithRetry(form).then(() => {
+        completed++;
+        setProgressMap(prev => ({ ...prev, [id]: Math.round((completed / totalChunks) * 100) }));
+      })));
     }
 
-    // Gửi chunk cuối cùng sau khi các chunk trước đã xong
     await uploadChunkWithRetry(lastChunk);
     setProgressMap(prev => ({ ...prev, [id]: 100 }));
   };
@@ -321,14 +349,12 @@ export default function MultiFileUploader() {
       const infoRes = await axios.post(`/getInfo`, { event_id: eventId });
       const baseCount = infoRes.data.result.gallery.length;
       
-      // Mở 2 luồng File song song (Tổng connection tối đa ~6)
       const FILE_CONCURRENCY = 2; 
 
       for (let i = 0; i < targets.length; i += FILE_CONCURRENCY) {
         const batch = targets.slice(i, i + FILE_CONCURRENCY);
         
         await Promise.allSettled(batch.map((f) => {
-          // Tính toán orderIndex dựa trên vị trí thực tế trong fileList hiện tại
           const globalIdx = fileList.findIndex(item => item.id === f.id);
           return processSingleFile(f, baseCount + 1 + globalIdx)
             .then(() => {
@@ -370,6 +396,7 @@ export default function MultiFileUploader() {
                 <Alert message={`Lỗi ở ${failedFiles.length} file.`} type="error" showIcon action={<Button size="small" danger icon={<SyncOutlined />} onClick={() => uploadFiles(true)}>Retry</Button>} />
               )}
 
+              {/* KHÔI PHỤC HÀNG NGÀY THÁNG ĐÚNG NHƯ ẢNH CỦA BẠN */}
               <div style={{ margin: '10px 0 20px 0', textAlign: 'center' }}>
                 <div>
                   <span style={{ display: 'inline-block', width: '101px' }}>Current Date: </span>
@@ -382,7 +409,7 @@ export default function MultiFileUploader() {
                   <span> | </span>
                   <Text copyable={{ text: currentDate.format('M-D-YY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{currentDate.format('M-D-YY')}</Text>
                 </div>
-                <div>
+                <div style={{ marginTop: 5 }}>
                   <DatePicker format="YYYY/MM/DD" style={{ width: '105px', padding: '2px 5px' }} value={searchDate} onChange={(date) => { setSearchDate(date); }} />
                   <span> | </span>
                   <Text copyable={{ text: searchDate.format('MMMM D, YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('MMMM D, YYYY')}</Text>
@@ -399,7 +426,7 @@ export default function MultiFileUploader() {
                 <div style={{ marginBottom: 12 }}>
                   <AutoComplete options={eventOptions} value={eventId} style={{ width: '100%' }} placeholder="Nhập hoặc chọn Event ID"
                     onChange={(val, opt) => { setEventId(opt?.event_id || val); setURLEdit(opt?.event_id ? `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${opt.event_id}` : undefined); setURL(opt?.post_slug ? `https://my.liquidandgrit.com/library/gallery/${opt.post_slug}` : undefined); setEventName(opt?.name); }}
-                    filterOption={(input, opt) => (opt?.event_id?.toString().toLowerCase().includes(input.toLowerCase()) || opt?.label?.toLowerCase().includes(input.toLowerCase()))}
+                    filterOption={(input, opt) => (opt?.label?.toLowerCase().includes(input.toLowerCase()))}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -411,35 +438,45 @@ export default function MultiFileUploader() {
                 </div>
               </Card>
 
-              {fileList.length === 0 && (
-                <Upload
-                  multiple
-                  showUploadList={false}
-                  beforeUpload={(file) => { handleAddFiles([file]); return false; }}
-                  className="full-width-upload"
-                >
-                  <div style={{ 
-                    height: 100, 
-                    width: '100%', 
-                    border: '2px dashed #d9d9d9', 
-                    borderRadius: '8px', 
-                    backgroundColor: '#fafafa', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    cursor: 'pointer' 
-                  }}>
-                    <UploadOutlined style={{ fontSize: 32, color: '#1890ff' }} />
-                    <p style={{ marginTop: 5, fontSize: 16 }}>Click để chọn file</p>
-                  </div>
-                </Upload>
-              )}
+              {/* KHUNG KÉO THẢ GIỮ NGUYÊN ĐỘ RỘNG 100% */}
+              <Upload
+                multiple
+                showUploadList={false}
+                beforeUpload={(file) => { handleAddFiles([file]); return false; }}
+                className="full-width-upload"
+              >
+                <div style={{ 
+                  height: 120, 
+                  width: '100%', 
+                  border: '2px dashed #d9d9d9', 
+                  borderRadius: '8px', 
+                  backgroundColor: '#fafafa', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  cursor: 'pointer' 
+                }}>
+                  <UploadOutlined style={{ fontSize: 32, color: '#1890ff' }} />
+                  <p style={{ marginTop: 10, fontSize: 16 }}>Click hoặc Kéo thả file vào đây để chọn</p>
+                </div>
+              </Upload>
 
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={fileList.map((f) => f.id)} strategy={verticalListSortingStrategy}>
                   <List bordered dataSource={fileList} style={{ background: '#fff' }} renderItem={(fileObj, index) => (
-                    <SortableItem key={fileObj.id} fileObj={fileObj} index={index} progress={progressMap[fileObj.id]} isFailed={failedFiles.includes(fileObj.id)} onNameChange={handleNameChange} onAddMore={handleAddFiles} onDelete={(idx) => setFileList((prev) => prev.filter((_, i) => i !== idx))} onPasteAtCursor={handlePasteAtCursor} />
+                    <SortableItem 
+                      key={fileObj.id} 
+                      fileObj={fileObj} 
+                      index={index} 
+                      progress={progressMap[fileObj.id]} 
+                      isFailed={failedFiles.includes(fileObj.id)} 
+                      onNameChange={handleNameChange} 
+                      onAddMore={handleAddFiles} 
+                      onDelete={(idx) => setFileList((prev) => prev.filter((_, i) => i !== idx))} 
+                      onPasteAtCursor={handlePasteAtCursor} 
+                      onPreview={(idx) => setPreviewIndex(idx)}
+                    />
                   )} />
                 </SortableContext>
               </DndContext>
@@ -451,6 +488,16 @@ export default function MultiFileUploader() {
           </Col>
         </Row>
       </div>
+
+      {/* LIGHTBOX XEM TRƯỚC */}
+      <Lightbox
+        open={previewIndex >= 0}
+        index={previewIndex}
+        close={() => setPreviewIndex(-1)}
+        slides={slides}
+        plugins={[Video, Zoom]}
+        video={{ autoPlay: true, controls: true, playsInline: true }}
+      />
     </div>
   );
 }
