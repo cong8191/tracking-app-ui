@@ -27,28 +27,24 @@ import dayjs from 'dayjs';
 
 export default function CheckItem() {
   const [loading, setLoading] = useState(false);
-
   const [game, setGame] = useState();
-
-
   const [eventOptions, setEventOptions] = useState([]);
   const textAreaRef = useRef(null);
   const [selectedDate, setSelectedDate] = useState(dayjs());
 
-    const tableContainerRef = useRef(null);
-    const filterInputRef = useRef(null);
-    const [searchDate, setSearchDate] = useState(dayjs().subtract(3, "month"));
-      const [popupData, setPopupData] = useState([]);
+  const tableContainerRef = useRef(null);
+  const filterInputRef = useRef(null);
+  const [searchDate, setSearchDate] = useState(dayjs().subtract(3, "month"));
+  const [popupData, setPopupData] = useState([]);
   const [isPopupLoading, setIsPopupLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isPopupVisible, setIsPopupVisible] = useState(false);
 
-const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+
   useEffect(() => {
-    // fetcEventData();
     fetcGameData();
   }, []);
-
 
   const fetcGameData = async () => {
     try {
@@ -61,16 +57,12 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
     }
   };
 
-
-
   const [value, setValue] = useState('');
   const [foundEvents, setFoundEvents] = useState([]);
-  // --- Hàm xử lý logic chính (Tách ra để dùng chung) ---
+
   const processAndReplaceText = (rawInput, targetElement) => {
-    // 1. Kiểm tra an toàn: Nếu không tìm thấy ô nhập liệu thì dừng
     if (!targetElement) return;
 
-    // 2. Xử lý nội dung (giữ nguyên logic lọc link của bạn)
     const raw = rawInput.replace(/"/g, '');
     const lines = raw.split(/\r?\n/);
     const merged = [];
@@ -94,59 +86,32 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
     }
 
     const finalText = merged.join('\n');
-
-    // 3. THAY THẾ TOÀN BỘ GIÁ TRỊ (Không cần tính toán vị trí con trỏ)
-
-    // Cách này giúp React nhận biết được sự thay đổi (trigger onChange)
     const setter = Object.getOwnPropertyDescriptor(
       window.HTMLTextAreaElement.prototype,
       'value'
     ).set;
 
     setter.call(targetElement, finalText);
-
-    // Bắn sự kiện input để cập nhật state của React
     targetElement.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
   const getRealTextAreaDOM = (ref) => {
-    // 1. Kiểm tra cơ bản
     if (!ref || !ref.current) return null;
-
     const instance = ref.current;
-
-    // 2. CASE CHUẨN (Dựa trên ảnh bạn gửi):
-    // Đi vào: ref.current -> resizableTextArea -> textArea
     if (instance.resizableTextArea && instance.resizableTextArea.textArea) {
       return instance.resizableTextArea.textArea;
     }
-
-    // 3. CASE DỰ PHÒNG (Cho một số phiên bản Antd cũ/lạ):
-    // Đôi khi thẻ thật nằm ngay ở property 'textArea' của resizableTextArea (nếu nó là object)
-    // Hoặc nằm ở instance.input
     if (instance.input) return instance.input;
-
-    // 4. CASE CỰC ĐOAN: Dùng querySelector tìm thẻ textarea bên trong wrapper
-    // Nếu instance là một HTML Element (div wrapper)
     if (instance instanceof HTMLElement) {
       return instance.querySelector('textarea') || instance;
     }
-
-    // Nếu instance là React Component, thử tìm node DOM của nó (nếu có thể)
-    // Nhưng thường Case 2 ở trên là đã bắt trúng rồi.
-
     return null;
   };
 
-  // --- Sự kiện 1: Khi bấm nút "Dán từ Clipboard" ---
   const handleBtnPaste = async () => {
     try {
-      // Lệnh này sẽ kích hoạt popup xin quyền trên Android
       const text = await navigator.clipboard.readText();
-
-      // Tìm thẻ thật
       const realInputDOM = getRealTextAreaDOM(textAreaRef);
-
       processAndReplaceText(text, realInputDOM);
     } catch (err) {
       console.error('Không thể đọc clipboard:', err);
@@ -154,10 +119,8 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
     }
   };
 
-  // --- Sự kiện 2: Khi người dùng Paste thủ công (Long press) ---
   const onManualPaste = (e) => {
     e.preventDefault();
-    // Vẫn dùng logic fallback lấy HTML/Text như câu trả lời trước
     let content = e.clipboardData.getData('text/plain');
     if (!content) {
       const htmlContent = e.clipboardData.getData('text/html');
@@ -167,46 +130,36 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
         content = tempDiv.innerText || tempDiv.textContent || "";
       }
     }
-
     if (content) {
       processAndReplaceText(content, e.target);
     }
   };
 
   const getContent = async (gameId) => {
-        if (!gameId) {
-            message.warning('Vui lòng chọn game');
-            return;
-        }
+    if (!gameId) {
+      message.warning('Vui lòng chọn game');
+      return;
+    }
+    setLoading(true);
+    try {
+      message.info(`Bắt đầu lấy data...`);
+      const res = await axios.post(`/getContent`, {
+        gameId: gameId,
+        action: 'GetData',
+        selectedDate: selectedDate.format("YYYY/MM/DD")
+      });
+      const realInputDOM = getRealTextAreaDOM(textAreaRef);
+      processAndReplaceText(res.data.data, realInputDOM);
+      setLoading(false);
+      message.success('Đã get thành công!');
+    } catch (err) {
+      console.error(err);
+      message.error('Lỗi lấy data ' + err.message);
+      setLoading(false);
+    }
+  };
 
-        setLoading(true);
-
-        try {
-            message.info(`Bắt đầu lấy data...`);
-
-            const res = await axios.post(`/getContent`, {
-                gameId: gameId,
-                action: 'GetData',
-                selectedDate: selectedDate.format("YYYY/MM/DD")
-            });
-
-            const realInputDOM = getRealTextAreaDOM(textAreaRef);
-
-            processAndReplaceText(res.data.data, realInputDOM);
-
-            // setValue(res.data.data);
-            setLoading(false);
-            message.success('Đã get thành công!');
-
-        } catch (err) {
-            console.error(err);
-            message.error('Lỗi lấy data ' + err.message);
-            setLoading(false);
-        }
-
-    };
-
-    const handleSearch = (e) => {
+  const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     const keyword = (e.target || e).value.toLowerCase();
     if (tableContainerRef.current) {
@@ -243,10 +196,9 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
 
   const handleOpenPopup = async () => {
     if (!game) {
-            message.warning('Vui lòng chọn game');
-            return;
-        }
-
+      message.warning('Vui lòng chọn game');
+      return;
+    }
     setIsPopupVisible(true);
     setIsPopupLoading(true);
     setPopupData(null);
@@ -265,14 +217,7 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
   };
 
   return (
-    <div
-      style={{
-        maxWidth: 1000,
-        margin: '0 auto',
-        padding: 20,
-        width: '100%' // Cho phép co giãn theo màn hình
-      }}
-    >
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: 20, width: '100%' }}>
       <MenuLink activeKey="check" />
       <div style={{ marginBottom: '10px' }}>
         <Select
@@ -282,7 +227,7 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
             const name = option.label?.toLowerCase?.() || '';
             return name.includes(keyword);
           }}
-          style={{ width: '100%' }} // Quan trọng: width 100% để ăn theo Col
+          style={{ width: '100%' }}
           placeholder="Chọn game (bắt buộc)"
           value={game}
           options={eventOptions}
@@ -290,29 +235,25 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
             setFoundEvents([]);
             setValue('')
             setGame(value)
-
             getContent(value);
           }}
         />
       </div>
-       <div style={{ display: 'flex', gap: '10px' }}>
-<DatePicker
-                        style={{ width: '100%' }}
-                        value={selectedDate}
-                        onChange={(date) => setSelectedDate(date)}
-                        format="YYYY/MM/DD"
-                    />
-                      <Button  onClick={()=>{
-                        getContent(game);
-                      }} loading={loading}>
-                                        Get
-                                    </Button>
 
-                                    <Button type="text" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(); }}>
-                  Data
-                </Button>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+        <DatePicker
+          style={{ width: '100%' }}
+          value={selectedDate}
+          onChange={(date) => setSelectedDate(date)}
+          format="YYYY/MM/DD"
+        />
+        <Button onClick={() => { getContent(game); }} loading={loading}>
+          Get
+        </Button>
+        <Button type="text" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(); }}>
+          Data
+        </Button>
       </div>
-
 
       <div style={{ marginBottom: '10px' }}>
         <TextArea
@@ -321,24 +262,13 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
           onPaste={onManualPaste}
           ref={textAreaRef}
           onChange={async (e) => {
-
-            const value = e.target.value;
-            // const lines = value.split(/\r?\n/);
-            setValue(value)
-           
+            setValue(e.target.value)
           }}
           placeholder="Paste vào đây, sẽ tự lọc ký tự không hợp lệ"
         />
       </div>
-      {/* Buttons */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 8,
-          marginBottom: 16
-        }}
-      >
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         <Button
           danger
           disabled={loading}
@@ -347,10 +277,6 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
               message.warning('Vui lòng chọn game');
               return;
             }
-
-            // const value = e.target.value;
-           
-            // setValue(value)
             if (value == '') {
               message.warning('Vui lòng điền nội dung cần check');
               setFoundEvents([]);
@@ -361,90 +287,130 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
             try {
               const response = await axios.post(`/check_item`, { gameId: game, checkData: lines, selectedDate: selectedDate.format("YYYY/MM/DD") });
               const data = response.data;
-
-
               setFoundEvents(data.resultData);
               setLoading(false)
             } catch (error) {
               setLoading(false)
               console.log(error);
-
               setFoundEvents([]);
             }
-
           }}
         >
           Run Check
         </Button>
-        <Button
-          danger
-          onClick={handleBtnPaste}
-          disabled={loading}
-        >
+        <Button danger onClick={handleBtnPaste} disabled={loading}>
           Dán Nội Dung
         </Button>
-
         {loading && <LoadingOutlined />}
-
       </div>
 
       <List
-        bordered
-        dataSource={foundEvents}
-        renderItem={(item) => (
-          <List.Item
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start', // phần text dài có thể xuống dòng
-              paddingTop: 8,
-              paddingBottom: 8
-            }}
-          >
-            <div style={{ flex: 1, wordBreak: 'break-word' }}>
-              {item.name}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-               {item.url && (
-                <Button
-                  type="text"
-                  icon={<ExpandOutlined />}
-                  onClick={() => window.open(item.viewImage, '_blank')}
-                />
-              )}
-              {item.url && (
-                <Button
-                  type="text"
-                  icon={<EyeOutlined />}
-                  onClick={() => window.open(item.url, '_blank')}
-                />
-              )}
-              {item.editLink && (
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => window.open(item.editLink, '_blank')}
-                />
-              )}
+  bordered
+  dataSource={foundEvents}
+  renderItem={(item) => (
+    <List.Item
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        padding: '12px 16px',
+      }}
+    >
+      {/* Hàng 1: Tiêu đề và Cụm Icon nằm cùng 1 hàng ngang */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', // Căn giữa theo chiều dọc để icon và chữ thẳng hàng
+        width: '100%' 
+      }}>
+        {/* Tiêu đề bên trái */}
+        <div style={{ 
+          flex: 1, 
+          fontWeight: 'bold', 
+          fontSize: '14px', 
+          wordBreak: 'break-word',
+          paddingRight: '15px' 
+        }}>
+          {item.name}
+        </div>
+        
+        {/* Cụm ID và Icon bên phải (Khung đỏ trong ảnh) */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px', // Khoảng cách giữa các icon
+          flexShrink: 0 
+        }}>
+          {/* Chữ ID màu đỏ như ảnh */}
+          <span style={{ color: 'red', fontWeight: '500', fontSize: '13px' }}>
+            {item.id || 'ID'}
+          </span>
 
-              <Button
-                type="text"
-                icon={item.valid ? <CheckCircleOutlined style={{ color: 'green' }} /> : <CloseCircleOutlined style={{ color: 'red' }} />}
+          {item.viewImage && (
+            <Button 
+              type="text" 
+              size="small" 
+              style={{ padding: 0, height: 'auto' }}
+              icon={<ExpandOutlined style={{ fontSize: '16px' }} />} 
+              onClick={() => window.open(item.viewImage, '_blank')} 
+            />
+          )}
+          
+          {item.url && (
+            <Button 
+              type="text" 
+              size="small" 
+              style={{ padding: 0, height: 'auto' }}
+              icon={<EyeOutlined style={{ fontSize: '16px' }} />} 
+              onClick={() => window.open(item.url, '_blank')} 
+            />
+          )}
 
-              />
+          {item.editLink && (
+            <Button 
+              type="text" 
+              size="small" 
+              style={{ padding: 0, height: 'auto' }}
+              icon={<EditOutlined style={{ fontSize: '16px' }} />} 
+              onClick={() => window.open(item.editLink, '_blank')} 
+            />
+          )}
 
-            </div>
-          </List.Item>
-        )}
-      />
-    <Modal
+          <Button
+            type="text"
+            size="small"
+            style={{ padding: 0, height: 'auto' }}
+            icon={item.valid ? 
+              <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '18px' }} /> : 
+              <CloseCircleOutlined style={{ color: '#f5222d', fontSize: '18px' }} />
+            }
+          />
+        </div>
+      </div>
+
+      {/* Hàng 2: Khung thông tin bổ sung bên dưới */}
+      <div style={{ 
+        marginTop: '10px', 
+        padding: '10px', 
+        backgroundColor: '#fafafa', 
+        borderRadius: '4px',
+        border: '1px solid #f0f0f0',
+        fontSize: '13px',
+        color: '#888',
+        minHeight: '36px'
+      }}>
+        {item.details || "Thông tin bổ sung hiển thị tại đây..."}
+      </div>
+    </List.Item>
+  )}
+/>
+
+      <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
-            <div style={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}>
-             
-            </div>
+            <div style={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}>Dữ liệu</div>
             <div style={{ display: 'flex', gap: '8px' }} onMouseDown={e => e.stopPropagation()}>
-              <DatePicker format="YYYY/MM/DD" style={{ width: '135px' }} value={searchDate} onChange={(date) => { setSearchDate(date); handleOpenPopup(popupSectionIndex, sections[popupSectionIndex].id) }} />
+              <DatePicker format="YYYY/MM/DD" style={{ width: '135px' }} value={searchDate} onChange={(date) => { setSearchDate(date); }} />
               <Input ref={filterInputRef} value={searchTerm} placeholder="Tìm..." onChange={handleSearch} style={{ width: '120px' }} />
             </div>
           </div>
@@ -460,8 +426,5 @@ const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.
         </div>
       </Modal>
     </div>
-    
-    
-
   );
 }
