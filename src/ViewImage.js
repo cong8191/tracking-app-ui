@@ -35,15 +35,10 @@ const ViewImage = () => {
 
   const isVideo = (ext) => ["mp4", "mov", "webm", "ogg"].includes(ext);
 
-  // ==========================================================
-  // TỐI ƯU: GỘP FILTER VÀ SLICE VÀO CHUNG 1 MEMO
-  // Giúp data đồng bộ tức thì, không bị lệch pha state
-  // ==========================================================
   const { filteredData, visibleData } = useMemo(() => {
     const list = apiData?.gallery || [];
     let filtered = list;
 
-    // 1. Thực hiện Filter
     if (startDate) {
       const startOfSelectedDate = startDate.startOf("day");
       filtered = list.filter((item) => {
@@ -52,7 +47,6 @@ const ViewImage = () => {
       });
     }
 
-    // 2. Thực hiện Slice ngay lập tức
     const visible = filtered.slice(0, displayLimit);
 
     return { 
@@ -61,7 +55,6 @@ const ViewImage = () => {
     };
   }, [apiData, startDate, displayLimit]);
 
-  // 3. Nhận diện phần tử cuối để load thêm
   const lastElementRef = useCallback(node => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
@@ -78,7 +71,6 @@ const ViewImage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Reset limit về mặc định khi chuyển event hoặc refresh
       setDisplayLimit(24);
       setApiData({ gallery: [] }); 
 
@@ -113,16 +105,11 @@ const ViewImage = () => {
       onOk: async () => {
         try {
           message.loading({ content: 'Đang xử lý xóa...', key: 'del_task' });
-
-          // Gọi API xóa của bạn
           await axios.post(`/delete_file`, { gallery_id: event_id, file: item });
-
-          // Cập nhật giao diện ngay lập tức bằng cách lọc bỏ phần tử đã xóa
           setApiData(prev => ({
             ...prev,
             gallery: prev.gallery.filter(g => g.id !== item.id)
           }));
-
           message.success({ content: 'Đã xóa thành công!', key: 'del_task', duration: 2 });
         } catch (error) {
           message.error({ content: 'Lỗi khi xóa ảnh!', key: 'del_task' });
@@ -151,39 +138,44 @@ const ViewImage = () => {
   }, [filteredData]);
 
   return (
-    <div style={{ padding: "0 20px 20px 20px", background: "#f5f5f5", minHeight: "100vh" }}>
+    <div style={{ padding: "10px", background: "#f5f5f5", minHeight: "100vh" }}>
       
+      {/* Sticky Header Tối ưu cho Mobile */}
       <div style={stickyHeaderWrapper}>
-        <div style={filterContainerStyle}>
-          <Space size="middle">
-            <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
-               Gallery: <span style={{ color: '#1890ff' }}>{galleryName || event_id}</span>
+        <div className="filter-card">
+          <div className="filter-header-top">
+            <Title level={5} style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+               <span style={{ color: '#1890ff' }}>{galleryName || event_id}</span>
             </Title>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+               {visibleData.length}/{filteredData.length} item
+            </Text>
+          </div>
+
+          <div className="filter-controls">
             <DatePicker 
               value={startDate} 
               onChange={(date) => { setStartDate(date); setDisplayLimit(24); }} 
               format="DD/MM/YYYY"
+              placeholder="Chọn ngày"
+              style={{ flex: 1, minWidth: '120px' }}
             />
             <Button 
               type={startDate === null ? "primary" : "default"} 
               onClick={() => { setStartDate(null); setDisplayLimit(24); }}
             >
-              Tất cả ảnh
+              Tất cả
             </Button>
-            <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Làm mới</Button>
-          </Space>
-
-          <Text type="secondary" style={{ fontSize: '13px' }}>
-              Tổng: {filteredData.length} | Đang hiện: {visibleData.length}
-          </Text>
+            <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading} />
+          </div>
         </div>
       </div>
 
-      <div style={{ marginTop: '10px' }}>
+      <div style={{ marginTop: '12px' }}>
         <Spin spinning={loading && visibleData.length === 0} tip="Đang tải..." size="large">
           <div style={{ minHeight: '200px' }}>
             {visibleData.length > 0 ? (
-              <Row gutter={[12, 24]}>
+              <Row gutter={[8, 12]}> {/* Khoảng cách nhỏ hơn trên Mobile */}
                 {visibleData.map((item, idx) => {
                   const ext = getFileExt(item.file_url);
                   const isLast = visibleData.length === idx + 1;
@@ -192,7 +184,7 @@ const ViewImage = () => {
                       <Card
                         className="custom-image-card"
                         hoverable
-                        bodyStyle={{ padding: "10px" }}
+                        bodyStyle={{ padding: "8px" }}
                         cover={
                           <div style={imgContainerStyle}>
                             <img 
@@ -205,10 +197,11 @@ const ViewImage = () => {
                             {isVideo(ext) && <div style={playIconOverlay}>▶</div>}
                             
                             <Button
-                              className="btn-delete-hover"
+                              className="btn-delete-node"
                               type="primary"
                               danger
                               shape="circle"
+                              size="small"
                               icon={<DeleteOutlined />}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -220,8 +213,8 @@ const ViewImage = () => {
                         }
                         onClick={() => setIndex(idx)}
                       >
-                        <div style={{ wordBreak: 'break-word', minHeight: '40px' }}>
-                           <Text strong style={{ fontSize: "12px", lineHeight: "1.4" }}>
+                        <div style={{ minHeight: '32px' }}>
+                           <Text strong style={{ fontSize: "11px", lineHeight: "1.2" }} ellipsis={{ tooltip: item.name }}>
                              {item.name}
                            </Text>
                         </div>
@@ -235,8 +228,8 @@ const ViewImage = () => {
             )}
 
             {displayLimit < filteredData.length && (
-              <div style={{ textAlign: 'center', padding: '30px' }}>
-                <Spin tip="Đang tải thêm..." />
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <Spin size="small" tip="Tải thêm..." />
               </div>
             )}
           </div>
@@ -253,34 +246,69 @@ const ViewImage = () => {
       />
 
       <style>{`
-        .custom-image-card:hover .btn-delete-hover {
+        /* Style cho Header linh hoạt */
+        .filter-card {
+          background: #fff;
+          padding: 12px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .filter-header-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .filter-controls {
+          display: flex;
+          gap: 8px;
+        }
+
+        /* Nút xóa mặc định ẩn trên desktop, hiện khi hover */
+        .btn-delete-node {
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.2s;
+        }
+        .custom-image-card:hover .btn-delete-node {
           opacity: 1 !important;
           visibility: visible !important;
-          transform: scale(1) !important;
+        }
+
+        /* Responsive cho Mobile */
+        @media (max-width: 767px) {
+          .btn-delete-node {
+            opacity: 0.7; /* Mobile không có hover nên hiện mờ mờ sẵn */
+            visibility: visible;
+            transform: scale(0.9);
+          }
+          .filter-card { padding: 8px; }
+          .ant-typography { font-size: 13px !important; }
+        }
+
+        /* Grid Desktop */
+        @media (min-width: 768px) {
+          .filter-card {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .filter-controls { width: auto; }
         }
       `}</style>
     </div>
   );
 };
 
-// --- STYLES GIỮ NGUYÊN ---
+// --- STYLES ---
 const stickyHeaderWrapper = {
   position: "sticky",
   top: 0,
   zIndex: 1000,
   background: "#f5f5f5",
-  paddingTop: "20px",
-  paddingBottom: "10px",
-};
-
-const filterContainerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  background: "#fff",
-  padding: "15px 25px",
-  borderRadius: "8px",
-  boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+  paddingBottom: "4px",
 };
 
 const imgContainerStyle = {
@@ -288,7 +316,7 @@ const imgContainerStyle = {
   paddingTop: "75%",
   background: "#e9e9e9",
   overflow: 'hidden',
-  borderRadius: '8px 8px 0 0'
+  borderRadius: '4px 4px 0 0'
 };
 
 const imageStyle = {
@@ -297,7 +325,7 @@ const imageStyle = {
   width: "100%", height: "100%",
   objectFit: "cover",
   opacity: 0,
-  transition: 'opacity 0.4s ease-in-out'
+  transition: 'opacity 0.3s ease-in'
 };
 
 const playIconOverlay = {
@@ -305,21 +333,18 @@ const playIconOverlay = {
   top: "50%", left: "50%",
   transform: "translate(-50%, -50%)",
   color: "#fff",
-  backgroundColor: "rgba(0,0,0,0.5)",
+  backgroundColor: "rgba(0,0,0,0.4)",
   borderRadius: "50%",
-  width: "40px", height: "40px",
-  fontSize: "20px",
-  display: "flex", alignItems: "center", justifyContent: "center"
+  width: "32px", height: "32px",
+  fontSize: "16px",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  pointerEvents: 'none'
 };
 
 const deleteButtonStyle = {
   position: "absolute",
-  top: "8px",
-  right: "8px",
-  opacity: 0,
-  visibility: "hidden",
-  transform: "scale(0.8)",
-  transition: 'all 0.2s ease-in-out',
+  top: "4px",
+  right: "4px",
   zIndex: 10
 };
 
