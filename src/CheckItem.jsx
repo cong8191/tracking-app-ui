@@ -311,95 +311,70 @@ export default function CheckItem() {
     <List.Item
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'stretch',
+        alignItems: 'flex-start', // Căn đỉnh để nội dung bên phải có thể dài ra
         padding: '12px 16px',
+        gap: '20px'
       }}
     >
-      {/* Hàng 1: Tiêu đề và Cụm Icon nằm cùng 1 hàng ngang */}
+      {/* BÊN TAY TRÁI: Tên Event (Giữ nguyên 1 khối) */}
       <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', // Căn giữa theo chiều dọc để icon và chữ thẳng hàng
-        width: '100%' 
+        flex: 1, 
+       
+        paddingTop: '4px' // Căn chỉnh cho bằng hàng đầu tiên bên phải
       }}>
-        {/* Tiêu đề bên trái */}
-        <div style={{ 
-          flex: 1, 
-          fontWeight: 'bold', 
-          fontSize: '14px', 
-          wordBreak: 'break-word',
-          paddingRight: '15px' 
-        }}>
-          {item.name}
-        </div>
-        
-        {/* Cụm ID và Icon bên phải (Khung đỏ trong ảnh) */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px', // Khoảng cách giữa các icon
-          flexShrink: 0 
-        }}>
-          {/* Chữ ID màu đỏ như ảnh */}
-          <span style={{ color: 'red', fontWeight: '500', fontSize: '13px' }}>
-            {item.id || 'ID'}
-          </span>
-
-          {item.viewImage && (
-            <Button 
-              type="text" 
-              size="small" 
-              style={{ padding: 0, height: 'auto' }}
-              icon={<ExpandOutlined style={{ fontSize: '16px' }} />} 
-              onClick={() => window.open(item.viewImage, '_blank')} 
-            />
-          )}
-          
-          {item.url && (
-            <Button 
-              type="text" 
-              size="small" 
-              style={{ padding: 0, height: 'auto' }}
-              icon={<EyeOutlined style={{ fontSize: '16px' }} />} 
-              onClick={() => window.open(item.url, '_blank')} 
-            />
-          )}
-
-          {item.editLink && (
-            <Button 
-              type="text" 
-              size="small" 
-              style={{ padding: 0, height: 'auto' }}
-              icon={<EditOutlined style={{ fontSize: '16px' }} />} 
-              onClick={() => window.open(item.editLink, '_blank')} 
-            />
-          )}
-
-          <Button
-            type="text"
-            size="small"
-            style={{ padding: 0, height: 'auto' }}
-            icon={item.valid ? 
-              <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '18px' }} /> : 
-              <CloseCircleOutlined style={{ color: '#f5222d', fontSize: '18px' }} />
-            }
-          />
-        </div>
+        {item.name}
       </div>
 
-      {/* Hàng 2: Khung thông tin bổ sung bên dưới */}
+      {/* BÊN TAY PHẢI: Danh sách nhiều hàng (Loop 1-N tại đây) */}
       <div style={{ 
-        marginTop: '10px', 
-        padding: '10px', 
-        backgroundColor: '#fafafa', 
-        borderRadius: '4px',
-        border: '1px solid #f0f0f0',
-        fontSize: '13px',
-        color: '#888',
-        minHeight: '36px'
+        display: 'flex', 
+        flexDirection: 'column', // Xếp các hàng icon theo chiều dọc
+        gap: '12px', // Khoảng cách giữa các hàng icon
+        minWidth: '150px' 
       }}>
-        {item.details || "Thông tin bổ sung hiển thị tại đây..."}
+        
+        {/* --- BẮT ĐẦU LOOP HÀNG BÊN PHẢI --- */}
+        {/* Giả sử mỗi item có một mảng con là 'subEvents' hoặc 'actions' */}
+        {/* Nếu chưa có mảng, mình demo bằng cách lặp lại chính nó hoặc render 1 hàng mặc định */}
+        {(item.details || []).map((sub, index) => (
+          <div key={index} style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'flex-end', 
+            gap: '10px',
+            padding: '4px 0',
+            borderBottom: item.subEvents ? '1px solid #f0f0f0' : 'none' 
+          }}>
+            {/* ID của từng hàng bên phải */}
+            <span style={{ color: 'red', fontSize: '12px', fontWeight: '500' }}>
+              {sub.galleryId || 'ID'}
+            </span>
+
+            {/* Cụm Icon cho từng hàng */}
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {sub.viewImage && (
+                <Button type="text" size="small" icon={<ExpandOutlined />} onClick={() => window.open(sub.viewImage, '_blank')} />
+              )}
+              {sub.url && (
+                <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => window.open(sub.url, '_blank')} />
+              )}
+              {sub.editLink && (
+                <Button type="text" size="small" icon={<EditOutlined />} onClick={() => window.open(sub.editLink, '_blank')} />
+              )}
+              
+              <Button
+                type="text"
+                size="small"
+                icon={item.valid ? 
+                  <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '18px' }} /> : 
+                  <CloseCircleOutlined style={{ color: '#f5222d', fontSize: '18px' }} />
+                }
+              />
+            </div>
+          </div>
+        ))}
+        {/* --- KẾT THÚC LOOP --- */}
+
       </div>
     </List.Item>
   )}
