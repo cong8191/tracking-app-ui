@@ -201,6 +201,22 @@ export default function App() {
   useEffect(() => { readCookieDat(); }, []);
   useEffect(() => { fetchGameData(selectedDate.format("YYYY/MM/DD")); }, [selectedDate]);
 
+  const handleDeleteEvent = async () => {
+    try {
+       await axios.post("/deleteEvent", {
+        eventId: form.getFieldValue('eventId'),
+       });
+
+      const newSections = [...sections];
+      newSections[activeSectionIndex].events = newSections[activeSectionIndex].events.filter(event => event.id !== form.getFieldValue('eventId'));
+
+      setSections(newSections);
+      setEventModalVisible(false);
+    } catch (error) {
+       console.error('Delete failed:', error);
+    }
+
+  }
   const handleAddEvent = async () => {
     try {
       const values = await form.validateFields();
@@ -226,7 +242,6 @@ export default function App() {
       }
       setSections(newSections);
       setEventModalVisible(false);
-      form.resetFields();
     } catch (err) {
       console.error('Validation failed:', err);
     }
@@ -465,7 +480,28 @@ export default function App() {
       </Modal>
 
       {/* CÁC MODAL THÊM SỰ KIỆN GIỮ NGUYÊN */}
-      <Modal title="Thêm sự kiện mới" open={eventModalVisible} onCancel={() => setEventModalVisible(false)} onOk={handleAddEvent} okText="Thêm">
+      <Modal title="Thêm sự kiện mới" open={eventModalVisible} onCancel={() => setEventModalVisible(false)}
+        footer={[
+          // Nút Delete nằm bên trái
+          (form.getFieldValue('eventId')) &&
+          <Button
+            key="delete"
+            danger
+            onClick={handleDeleteEvent}
+            style={{ float: 'left' }} // Đẩy nút Delete sang trái cho tách biệt
+          >
+            Xóa
+          </Button>,
+          // Nút Hủy và Thêm nằm bên phải như cũ
+          <Button key="back" onClick={() => setEventModalVisible(false)}>
+            Hủy
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleAddEvent}>
+            Thêm
+          </Button>,
+        ]}
+
+      >
         <Form form={form} layout="vertical">
           <Button onClick={() => setIsModalOpen(true)}>Find event</Button>
           <Form.Item hidden name="eventId"></Form.Item>
@@ -473,18 +509,18 @@ export default function App() {
             <Select showSearch style={{ width: '100%' }} allowClear optionFilterProp="label" filterOption={(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())} onChange={(v, opt) => form.setFieldsValue({ galleryId: opt?.galleryId || '', post_slug: opt?.post_slug || '' })}>
               {sections[activeSectionIndex]?.events?.filter(e => (e.g_name || '') === '').map(event => (
                 <Select.Option key={event.id} value={event.id} label={`${event.name} ${event.id}`} defaultDay={event.default_day} g_name={event.g_name}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <div style={{ flex: 1, whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                        {event.name} {event.g_name ? ` (${event.g_name})` : ''}
-                      </div>
-                      <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                        <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); window.open('vewImage/' + event.gallery_id, '_blank'); }} />
-                        {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
-                        <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
-                      </div>
-
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ flex: 1, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      {event.name} {event.g_name ? ` (${event.g_name})` : ''}
                     </div>
-                  </Select.Option>
+                    <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
+                      <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); window.open('vewImage/' + event.gallery_id, '_blank'); }} />
+                      {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
+                      <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
+                    </div>
+
+                  </div>
+                </Select.Option>
                 // <Select.Option key={e.id} galleryId={e.gallery_id} post_slug={e.post_slug} value={e.name} label={e.name}>{e.name}</Select.Option>
               ))}
             </Select>
@@ -494,7 +530,7 @@ export default function App() {
             validator(_, value) {
               const relatedEvent = getFieldValue('relatedName'); // Lấy giá trị field khác ở đây
 
-              if (!value || !relatedEvent || relatedEvent !=  value) {
+              if (!value || !relatedEvent || relatedEvent != value) {
                 return Promise.resolve();
               }
 
@@ -521,7 +557,7 @@ export default function App() {
           if (idx !== -1) { eId = sections[activeSectionIndex].events[idx].id; d = sections[activeSectionIndex].events[idx].default_day; }
           form.setFieldsValue({ eventId: eId, galleryId: gId, gameName: name, relatedName: data?.events?.[0] !== data.title ? data.title : '', post_slug: data.permalink.replace('https://my.liquidandgrit.com/library/gallery/', ''), day: d });
 
-          
+
         }} />
       </Modal>
     </div>

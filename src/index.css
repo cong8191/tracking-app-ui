@@ -102,25 +102,21 @@ code {
 
 
         /* Phóng to vùng bấm của nút clear trên mobile */
-/* Đảm bảo nút clear luôn nằm giữa theo chiều dọc */
+/* Tăng độ ưu tiên và diện tích bấm cho nút Clear */
 .ant-select-clear {
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  right: 11px !important; /* Điều chỉnh lại khoảng cách lề phải nếu cần */
+  z-index: 10 !important; /* Đảm bảo nằm trên mọi icon khác */
+  width: 24px !important;  /* Nới rộng vùng bấm */
+  height: 24px !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
-  background-color: #fff; /* Tránh nhìn xuyên thấu nếu bị đè */
-  border-radius: 50%;
-  z-index: 1;
+  pointer-events: auto !important; /* Ép nó nhận sự kiện */
 }
 
-/* Nếu bạn đang dùng Select nhiều icon (như trong hình có cả icon edit, mắt...) */
-.ant-select-selection-item {
-  padding-right: 30px !important; /* Tạo khoảng trống để nút X không đè lên chữ */
+/* Đảm bảo các icon custom không che mất nút clear */
+.ant-select-suffix {
+  pointer-events: none; /* Cho phép click xuyên qua vùng trống của suffix */
 }
-
-/* Đảm bảo dropdown không chiếm quyền ưu tiên khi touch */
-.ant-select-selector {
-  touch-action: manipulation;
+.ant-select-suffix > * {
+  pointer-events: auto; /* Nhưng vẫn cho phép click vào từng icon cụ thể */
 }

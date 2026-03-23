@@ -425,6 +425,7 @@ export default function MultiFileUploader() {
               <Card size="small" bordered={false} style={{ background: '#fafafa' }}>
                 <div style={{ marginBottom: 12 }}>
                   <AutoComplete options={eventOptions} value={eventId} style={{ width: '100%' }} placeholder="Nhập hoặc chọn Event ID"
+                    allowClear
                     onChange={(val, opt) => { setEventId(opt?.event_id || val); setURLEdit(opt?.event_id ? `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${opt.event_id}` : undefined); setURL(opt?.post_slug ? `https://my.liquidandgrit.com/library/gallery/${opt.post_slug}` : undefined); setEventName(opt?.name); }}
                     filterOption={(input, opt) => (opt?.label?.toLowerCase().includes(input.toLowerCase()))}
                   />
