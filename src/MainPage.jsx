@@ -508,7 +508,7 @@ export default function App() {
           <Form.Item label="Related event (related_name)" name="relatedName">
             <Select showSearch style={{ width: '100%' }} allowClear optionFilterProp="label" filterOption={(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())} onChange={(v, opt) => form.setFieldsValue({ galleryId: opt?.galleryId || '', post_slug: opt?.post_slug || '' })}>
               {sections[activeSectionIndex]?.events?.filter(e => (e.g_name || '') === '').map(event => (
-                <Select.Option key={event.id} value={event.id} label={`${event.name} ${event.id}`} defaultDay={event.default_day} g_name={event.g_name}>
+                <Select.Option key={event.id} galleryId={event.gallery_id} post_slug={event.post_slug} value={event.name} label={event.name} defaultDay={event.default_day} g_name={event.g_name}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                     <div style={{ flex: 1, whiteSpace: 'normal', wordBreak: 'break-word' }}>
                       {event.name} {event.g_name ? ` (${event.g_name})` : ''}
