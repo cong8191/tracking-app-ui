@@ -204,6 +204,8 @@ export default function App() {
   const handleAddEvent = async () => {
     try {
       const values = await form.validateFields();
+
+
       const datap = { eventId: values.eventId, name: values.gameName, gallery_id: values.galleryId, g_name: values.relatedName, default_day: values.day, post_slug: values.post_slug, gameId: sections[activeSectionIndex].id };
       const res = await axios.post("/event", datap);
       const data = res.data;
@@ -235,22 +237,22 @@ export default function App() {
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         {fields['event-details']?.filter(item => !item.isDelete)?.map((field, fieldIndex) => (
-          <div key={sectionIndex + '- ' + fieldIndex} 
-               style={{ 
-                 display: "flex", 
-                 flexWrap: "wrap", 
-                 gap: "8px", 
-                 alignItems: "center", 
-                 width: "100%",
-                 padding: isMobile ? "12px 0" : "4px 0",
-                 borderBottom: isMobile ? "1px dashed #ddd" : "none"
-               }}>
+          <div key={sectionIndex + '- ' + fieldIndex}
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px",
+              alignItems: "center",
+              width: "100%",
+              padding: isMobile ? "12px 0" : "4px 0",
+              borderBottom: isMobile ? "1px dashed #ddd" : "none"
+            }}>
 
             {/* Cột 1: Date Range - Desktop cố định rộng, Mobile 100% */}
-            <div style={{ 
-              display: "flex", 
-              gap: "4px", 
-              flex: isMobile ? "1 1 100%" : "0 0 310px" 
+            <div style={{
+              display: "flex",
+              gap: "4px",
+              flex: isMobile ? "1 1 100%" : "0 0 310px"
             }}>
               <DatePicker
                 format="YYYY/MM/DD"
@@ -288,11 +290,11 @@ export default function App() {
             </div>
 
             {/* Cột 2: Select Event - Desktop tự giãn, Mobile 100% (XUỐNG DÒNG) */}
-            <div style={{ 
+            <div style={{
               flex: isMobile ? "1 1 100%" : "1 1 auto",
-              minWidth: isMobile ? "100%" : "200px" 
+              minWidth: isMobile ? "100%" : "200px"
             }}>
-              <Select
+              <Select allowClear
                 disabled={field.status === "1"}
                 showSearch
                 value={field.event_id}
@@ -315,8 +317,10 @@ export default function App() {
                   <>
                     {menu}
                     <Button type="link" size="small" onClick={() => {
+                      form.resetFields();
                       setEventModalVisible(true);
                       setActiveSectionIndex(sectionIndex);
+
                     }}>+ Thêm mới</Button>
                   </>
                 )}
@@ -332,23 +336,23 @@ export default function App() {
                         {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
                         <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
                         <Button
-                            type="text" size="small" icon={<EditOutlined />}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              form.setFieldsValue({
-                                eventId: event.id,
-                                gameName: event.name,
-                                day: event.default_day,
-                                galleryId: event.gallery_id,
-                                relatedName: event.g_name,
-                                post_slug: event.post_slug
-                              });
-                              setEventModalVisible(true);
-                              setActiveSectionIndex(sectionIndex);
-                            }}/>
+                          type="text" size="small" icon={<EditOutlined />}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            form.setFieldsValue({
+                              eventId: event.id,
+                              gameName: event.name,
+                              day: event.default_day,
+                              galleryId: event.gallery_id,
+                              relatedName: event.g_name,
+                              post_slug: event.post_slug
+                            });
+                            setEventModalVisible(true);
+                            setActiveSectionIndex(sectionIndex);
+                          }} />
                       </div>
-                      
+
                     </div>
                   </Select.Option>
                 ))}
@@ -356,9 +360,9 @@ export default function App() {
             </div>
 
             {/* Cột 3: Type & Status - Desktop nằm cùng hàng, Mobile 100% */}
-            <div style={{ 
-              display: "flex", 
-              gap: "8px", 
+            <div style={{
+              display: "flex",
+              gap: "8px",
               alignItems: "center",
               flex: isMobile ? "1 1 100%" : "0 0 auto"
             }}>
@@ -396,7 +400,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4 space-y-4">
       <MenuLink activeKey="home" />
-      
+
       <div style={{ textAlign: "center", marginBottom: "20px" }}>
         <Button type="primary" onClick={() => {
           navigator.clipboard.writeText('copy(JSON.stringify({"csrf": window.csrfHash, "cookies" : document.cookie }));')
@@ -465,29 +469,59 @@ export default function App() {
         <Form form={form} layout="vertical">
           <Button onClick={() => setIsModalOpen(true)}>Find event</Button>
           <Form.Item hidden name="eventId"></Form.Item>
-          <Form.Item label="Tên game" name="gameName" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="Gallery ID" name="galleryId" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="Post Slug" name="post_slug"><Input /></Form.Item>
-          <Form.Item label="Day" name="day"><Input /></Form.Item>
-          <Form.Item label="Tên sự kiện (related_name)" name="relatedName">
-            <Select showSearch style={{ width: '100%' }} optionFilterProp="label" filterOption={(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())} onChange={(v, opt) => form.setFieldsValue({ galleryId: opt?.galleryId || '', post_slug: opt?.post_slug || '' })}>
-              {sections[activeSectionIndex]?.events?.filter(e => (e.g_name || '') === '').map(e => (
-                <Select.Option key={e.id} galleryId={e.gallery_id} post_slug={e.post_slug} value={e.name} label={e.name}>{e.name}</Select.Option>
+          <Form.Item label="Related event (related_name)" name="relatedName">
+            <Select showSearch style={{ width: '100%' }} allowClear optionFilterProp="label" filterOption={(input, option) => (option.label ?? '').toLowerCase().includes(input.toLowerCase())} onChange={(v, opt) => form.setFieldsValue({ galleryId: opt?.galleryId || '', post_slug: opt?.post_slug || '' })}>
+              {sections[activeSectionIndex]?.events?.filter(e => (e.g_name || '') === '').map(event => (
+                <Select.Option key={event.id} value={event.id} label={`${event.name} ${event.id}`} defaultDay={event.default_day} g_name={event.g_name}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <div style={{ flex: 1, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        {event.name} {event.g_name ? ` (${event.g_name})` : ''}
+                      </div>
+                      <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
+                        <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); window.open('vewImage/' + event.gallery_id, '_blank'); }} />
+                        {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
+                        <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
+                      </div>
+
+                    </div>
+                  </Select.Option>
+                // <Select.Option key={e.id} galleryId={e.gallery_id} post_slug={e.post_slug} value={e.name} label={e.name}>{e.name}</Select.Option>
               ))}
             </Select>
           </Form.Item>
+          <Form.Item label="Tên sự kiện" name="gameName" rules={[{ required: true },
+          ({ getFieldValue }) => ({
+            validator(_, value) {
+              const relatedEvent = getFieldValue('relatedName'); // Lấy giá trị field khác ở đây
+
+              if (!value || !relatedEvent || relatedEvent !=  value) {
+                return Promise.resolve();
+              }
+
+              return Promise.reject(new Error('Tên sự kiện và related event không đc giống nhau'));
+            },
+          }),
+
+          ]}><Input /></Form.Item>
+          <Form.Item label="Gallery ID" name="galleryId" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item label="Post Slug" name="post_slug"><Input /></Form.Item>
+          <Form.Item label="Day" name="day"><Input /></Form.Item>
+
         </Form>
       </Modal>
 
       <Modal title="Chọn event" open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} destroyOnClose>
         <SearchableTable gameId={sections[activeSectionIndex]?.id} returnParent={(data) => {
           setIsModalOpen(false);
+          form.resetFields();
           const name = data?.events?.[0] || data.title;
           const gId = data?.id;
           let d = '', eId = undefined;
           const idx = sections[activeSectionIndex].events.findIndex(i => i.gallery_id === gId && i.name === name);
           if (idx !== -1) { eId = sections[activeSectionIndex].events[idx].id; d = sections[activeSectionIndex].events[idx].default_day; }
           form.setFieldsValue({ eventId: eId, galleryId: gId, gameName: name, relatedName: data?.events?.[0] !== data.title ? data.title : '', post_slug: data.permalink.replace('https://my.liquidandgrit.com/library/gallery/', ''), day: d });
+
+          
         }} />
       </Modal>
     </div>
