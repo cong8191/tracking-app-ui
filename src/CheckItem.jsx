@@ -19,6 +19,7 @@ import {
   LoadingOutlined,
   DatabaseOutlined,
   ExpandOutlined,
+  PlusCircleOutlined,
 } from '@ant-design/icons';
 import axios from './axios-config';
 import TextArea from 'antd/es/input/TextArea';
@@ -31,6 +32,7 @@ export default function CheckItem() {
   const [eventOptions, setEventOptions] = useState([]);
   const textAreaRef = useRef(null);
   const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [events, setEvents] = useState([]);
 
   const tableContainerRef = useRef(null);
   const filterInputRef = useRef(null);
@@ -150,6 +152,7 @@ export default function CheckItem() {
       });
       const realInputDOM = getRealTextAreaDOM(textAreaRef);
       processAndReplaceText(res.data.data, realInputDOM);
+      setEvents(res.data.events);
       setLoading(false);
       message.success('Đã get thành công!');
     } catch (err) {
@@ -215,6 +218,10 @@ export default function CheckItem() {
       setPopupData("<p style='color:red'>Lỗi tải dữ liệu</p>");
     }
   };
+
+  const checkExists = (galleryId) => {
+    return events.findIndex(item=> item.gallery_id == galleryId) == -1;
+  }
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: 20, width: '100%' }}>
@@ -346,6 +353,22 @@ export default function CheckItem() {
             borderBottom: item.subEvents ? '1px solid #f0f0f0' : 'none' 
           }}>
             {/* ID của từng hàng bên phải */}
+             {checkExists(sub.galleryId) && (
+                <Button type="text" size="small" icon={<PlusCircleOutlined />} onClick={async () => {
+
+                   const g_name = item.data.subEvent == '' ? '' : item.data.eventName;
+                  const eventname = item.data.subEvent == '' ? item.data.eventName : item.data.subEvent;
+                   const datap = { name: eventname, gallery_id: sub.galleryId, g_name: g_name, post_slug: sub.url.replace('https://my.liquidandgrit.com/library/gallery/',''), gameId: game };
+                      await axios.post("/event", datap);
+                      const newEvents = [...events];
+                      newEvents.push({
+                        gameid: game, name: eventname, gallery_id: sub.galleryId, g_name: g_name
+                      })
+                      setEvents(newEvents);
+                    message.success('Thêm thành công');
+                    
+                }} />
+              )}
             <span style={{ color: 'red', fontSize: '12px', fontWeight: '500' }}>
               {sub.galleryId || 'ID'}
             </span>
@@ -361,6 +384,8 @@ export default function CheckItem() {
               {sub.editLink && (
                 <Button type="text" size="small" icon={<EditOutlined />} onClick={() => window.open(sub.editLink, '_blank')} />
               )}
+
+              
               
               <Button
                 type="text"
