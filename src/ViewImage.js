@@ -77,6 +77,14 @@ const ViewImage = () => {
       const response = await axios.post(`/vewImage`, { event_id });
       const resultData = response.data.result || { gallery: [] };
       
+      const list = [...(resultData?.gallery || [])].reverse();
+      resultData.gallery  = list;
+
+      if(list.length > 0) {
+      const lastDate = dayjs.unix(Number(list[0].small_added));
+      setStartDate(lastDate);
+      }
+
       setApiData({ ...resultData });
       setGalleryName(resultData.gallery_name || '');
       document.title = resultData.gallery_name || 'Gallery';
