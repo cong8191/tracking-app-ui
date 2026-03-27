@@ -4,7 +4,8 @@ import {
   CloseOutlined, CloudOutlined, EditOutlined,
   EyeOutlined, LoadingOutlined, PlusOutlined, ReadOutlined,
   DatabaseOutlined,
-  ExpandOutlined
+  ExpandOutlined,
+  BulbOutlined
 } from "@ant-design/icons";
 
 import dayjs from "dayjs";
@@ -13,6 +14,7 @@ import axios from './axios-config';
 import SearchableTable from "./SearchableTable";
 import TextArea from "antd/es/input/TextArea";
 import MenuLink from "./MenuLink";
+import SelectionPopup from "./SelectionPopup";
 
 const { Panel } = Collapse;
 const { Option } = Select;
@@ -39,6 +41,8 @@ export default function App() {
   const [openIndex, setOpenIndex] = useState(null);
   const tableContainerRef = useRef(null);
   const filterInputRef = useRef(null);
+
+  const [suggetEventModal, setSuggetEventModal] = useState({isModalVisible: false, gameId: null, selectedDate: null});
 
   // 1. Theo dõi kích thước màn hình
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
@@ -203,9 +207,9 @@ export default function App() {
 
   const handleDeleteEvent = async () => {
     try {
-       await axios.post("/deleteEvent", {
+      await axios.post("/deleteEvent", {
         eventId: form.getFieldValue('eventId'),
-       });
+      });
 
       const newSections = [...sections];
       newSections[activeSectionIndex].events = newSections[activeSectionIndex].events.filter(event => event.id !== form.getFieldValue('eventId'));
@@ -213,7 +217,7 @@ export default function App() {
       setSections(newSections);
       setEventModalVisible(false);
     } catch (error) {
-       console.error('Delete failed:', error);
+      console.error('Delete failed:', error);
     }
 
   }
@@ -444,9 +448,21 @@ export default function App() {
               header={<div className="flex justify-between items-center w-full">{fields.name}</div>}
               key="0"
               extra={
-                <Button type="text" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(sectionIndex, fields.id); }}>
-                  Data
-                </Button>
+                <div>
+                  <Button type="text" icon={<BulbOutlined />} onClick={(e) => {
+                    e.stopPropagation();
+                    setSuggetEventModal({isModalVisible: true, gameId: fields.id, selectedDate: selectedDate})
+                  }
+
+                  }>
+                    Gợi ý event
+                  </Button>
+
+                  <Button type="text" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(sectionIndex, fields.id); }}>
+                    Data
+                  </Button>
+                </div>
+
               }
             >
               {renderSectionBody(fields, sectionIndex)}
@@ -560,6 +576,14 @@ export default function App() {
 
         }} />
       </Modal>
+
+      <SelectionPopup 
+        visible={suggetEventModal.isModalVisible}
+        gameId={suggetEventModal.gameId}
+        selectedDate={suggetEventModal.selectedDate}
+        onCancel={() => setSuggetEventModal({isModalVisible: false, gameId: null, selectedDate: null})}
+        onSave={(selectedKeys) => console.log("Lưu các ID:", selectedKeys)}
+      />
     </div>
   );
 }
