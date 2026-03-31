@@ -219,8 +219,8 @@ export default function CheckItem() {
     }
   };
 
-  const checkExists = (galleryId) => {
-    return events.findIndex(item=> item.gallery_id == galleryId) == -1;
+  const checkExists = (galleryId, g_name , eventName) => {
+    return events.findIndex(item=> item.gallery_id == galleryId && item.g_name ==  g_name && item.name == eventName) == -1;
   }
 
   return (
@@ -353,7 +353,7 @@ export default function CheckItem() {
             borderBottom: item.subEvents ? '1px solid #f0f0f0' : 'none' 
           }}>
             {/* ID của từng hàng bên phải */}
-             {checkExists(sub.galleryId) && (
+             {checkExists(sub.galleryId, item.data.subEvent == '' ? '' : item.data.eventName, item.data.subEvent == '' ? item.data.eventName : item.data.subEvent) && (
                 <Button type="text" size="small" icon={<PlusCircleOutlined />} onClick={async () => {
 
                    const g_name = item.data.subEvent == '' ? '' : item.data.eventName;
