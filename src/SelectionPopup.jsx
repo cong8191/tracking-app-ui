@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Table, Input, Spin, Empty, message } from 'antd';
+import axios from './axios-config';
 
 const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate }) => {
   const [loading, setLoading] = useState(false);
@@ -26,19 +27,24 @@ const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate }) => 
   const fetchData = async () => {
     setLoading(true);
     try {
+
+     
+
       console.log(`Đang gọi API cho Game: ${gameId} vào ngày: ${selectedDate}`);
-      
-      // GIẢ LẬP GỌI API (DUMP DATA)
-      await new Promise(resolve => setTimeout(resolve, 800)); 
-      const mockData = [
-        { key: 'ev1', name: 'River of Riches', type: 'Event' },
-        { key: 'ev2', name: 'Keeping it Reel', type: 'Mini Game' },
-        { key: 'ev3', name: 'Present Pursuit', type: 'Limited' },
-        { key: 'ev4', name: 'Treasure Quest', type: 'Quest' },
-        { key: 'ev5', name: 'Gilly Panda', type: 'Rescue' },
-      ];
-      
-      setData(mockData);
+
+       const response = await axios.post(`/get_event_suggest`, { gameId, selectedDate: selectedDate.format('YYYY/MM/DD')});
+
+      const data = response.data.map(item => ({
+        key: item.id,
+        name: item.name,
+        g_name: item.g_name,
+        from: selectedDate.format('YYYY/MM/DD'),
+        to: selectedDate.add(item.days_diff, "day").format('YYYY/MM/DD'),
+        totalday: item.days_diff
+
+      }));
+
+      setData(data);
     } catch (error) {
       message.error("Không thể lấy dữ liệu sự kiện");
     } finally {
@@ -47,8 +53,11 @@ const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate }) => 
   };
 
   const columns = [
-    { title: 'Tên sự kiện', dataIndex: 'name', key: 'name' },
-    { title: 'Phân loại', dataIndex: 'type', key: 'type' },
+    { title: 'Tên sự kiện', dataIndex: 'name', key: 'name' , width: '150px'},
+    { title: 'G', dataIndex: 'g_name', key: 'g_name', width: '150px' },
+    { title: 'From', dataIndex: 'from', key: 'from', width: '100px'  },
+    { title: 'To', dataIndex: 'to', key: 'to', width: '100px'  },
+    { title: 'Total Day', dataIndex: 'totalday', key: 'totalday', width: '50px' },
   ];
 
   const filteredData = data.filter(item => 
@@ -60,11 +69,16 @@ const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate }) => 
       title={`Chọn sự kiện - ID Game: ${gameId}`}
       open={visible}
       onOk={() => {
-        onSave(selectedRowKeys);
+        const selectedObjects = data.filter(item => selectedRowKeys.includes(item.key));
+        onSave(selectedObjects);
         onCancel();
       }}
       onCancel={onCancel}
-      width={600}
+     width="auto"
+     style={{ 
+    maxWidth: '50vw', // Không vượt quá 90% chiều rộng màn hình
+    minWidth: '400px' // Đảm bảo không quá nhỏ khi ít dữ liệu
+  }}
       okText="Xác nhận"
       cancelText="Đóng"
     >
@@ -80,6 +94,7 @@ const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate }) => 
             type: 'checkbox',
             selectedRowKeys,
             onChange: setSelectedRowKeys,
+            preserveSelectedRowKeys: true,
           }}
           columns={columns}
           dataSource={filteredData}

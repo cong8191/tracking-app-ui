@@ -451,7 +451,7 @@ export default function App() {
                 <div>
                   <Button type="text" icon={<BulbOutlined />} onClick={(e) => {
                     e.stopPropagation();
-                    setSuggetEventModal({isModalVisible: true, gameId: fields.id, selectedDate: selectedDate})
+                    setSuggetEventModal({isModalVisible: true, gameId: fields.id, selectedDate: selectedDate, sectionIndex})
                   }
 
                   }>
@@ -582,7 +582,24 @@ export default function App() {
         gameId={suggetEventModal.gameId}
         selectedDate={suggetEventModal.selectedDate}
         onCancel={() => setSuggetEventModal({isModalVisible: false, gameId: null, selectedDate: null})}
-        onSave={(selectedKeys) => console.log("Lưu các ID:", selectedKeys)}
+        onSave={(selectedObjects) => {
+
+          const newSections = [...sections];
+          selectedObjects.forEach((obj, index) => {
+             newSections[suggetEventModal.sectionIndex]['event-details'].push({
+                from: obj.from,
+                to: obj.to,
+                event_id: obj.key,
+                status: '',
+                type: 'date',
+              });
+          });
+
+          
+   
+          setSections(newSections);
+
+        }}
       />
     </div>
   );
