@@ -220,7 +220,7 @@ export default function CheckItem() {
   };
 
   const checkExists = (galleryId, g_name , eventName) => {
-    return events.findIndex(item=> item.gallery_id == galleryId && item.g_name ==  g_name && item.name == eventName) == -1;
+    return events.findIndex(item=> item.gallery_id == galleryId && (item.g_name || '') ==  g_name && item.name == eventName) == -1;
   }
 
   return (
