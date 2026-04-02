@@ -353,7 +353,7 @@ export default function CheckItem() {
             borderBottom: item.subEvents ? '1px solid #f0f0f0' : 'none' 
           }}>
             {/* ID của từng hàng bên phải */}
-             {checkExists(sub.galleryId, item.data.subEvent == '' ? '' : item.data.eventName, item.data.subEvent == '' ? item.data.eventName : item.data.subEvent) && (
+             {item?.data && checkExists(sub.galleryId, item.data.subEvent == '' ? '' : item.data.eventName, item.data.subEvent == '' ? item.data.eventName : item.data.subEvent) && (
                 <Button type="text" size="small" icon={<PlusCircleOutlined />} onClick={async () => {
 
                    const g_name = item.data.subEvent == '' ? '' : item.data.eventName;
