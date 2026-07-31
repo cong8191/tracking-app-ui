@@ -15,15 +15,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22' # Đã nâng lên Node v22 để đáp ứng yêu cầu của Capacitor v8
 
-      # Bước 1: Build ứng dụng React như bình thường (Lúc này đã có Capacitor trong package.json)
+      # Bước 1: Build ứng dụng React như bình thường
       - name: Install dependencies and build web app
         run: |
           npm install
           npm run build
 
-      # Bước 2: Đồng bộ code web vào dự án iOS (Giờ đã có local package nên chạy cực mượt)
+      # Bước 2: Đồng bộ code web vào dự án iOS
       - name: Sync with Capacitor
         run: npx @capacitor/cli sync ios
 
