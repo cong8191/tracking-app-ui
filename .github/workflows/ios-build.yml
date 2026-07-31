@@ -2,7 +2,7 @@ name: Build iOS App (Unsigned for Sideload)
 
 on:
   push:
-    branches: [ main ] # Sửa lại thành nhánh chính của bạn nếu là master
+    branches: [ main ] # Sửa thành master nếu nhánh chính của bạn tên là master
 
 jobs:
   build-ios:
@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Cập nhật lên bản 20 cho đồng bộ với môi trường hiện đại
+          node-version: '20'
 
       # Bước 1: Build ứng dụng React như bình thường
       - name: Install dependencies and build web app
@@ -23,24 +23,24 @@ jobs:
           npm install
           npm run build
 
-      # Bước 2: Đồng bộ web build vào dự án iOS của Capacitor
+      # Bước 2: Đồng bộ code web vào dự án iOS (Đã sửa để tránh lỗi trùng tên gói)
       - name: Sync with Capacitor
-        run: npx cap sync ios
+        run: npx @capacitor/cli sync ios
 
-      # Bước 3 (MỚI): Build app dạng KHÔNG CẦN CHỮ KÝ (Bypass hoàn toàn bước Certificate cũ)
+      # Bước 3: Ép Xcode dịch app dạng KHÔNG CẦN CHỮ KÝ (Bypass Cert của Apple)
       - name: Build iOS App (No Sign)
         run: |
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO clean build
 
-      # Bước 4 (MỚI): Đóng gói thủ công thành file .ipa (Bypass bước exportArchive và file exportOptions.plist)
+      # Bước 4: Đóng gói thủ công thành file .ipa sạch để mang về Windows tự ký
       - name: Package to Unsigned .ipa
         run: |
           mkdir -p Payload
           mv ios/App/build/Debug-iphoneos/App.app Payload/
           zip -r tracking-game.ipa Payload
 
-      # Bước 5: Tải file .ipa lên GitHub Artifacts để bạn download về Windows
+      # Bước 5: Đẩy file .ipa lên mục Artifacts trên GitHub để tải về
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
