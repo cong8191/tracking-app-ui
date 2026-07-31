@@ -23,9 +23,9 @@ jobs:
           npm install
           npm run build
 
-      # Bước 2: Đồng bộ code web vào dự án iOS (Đã sửa để tránh lỗi trùng tên gói)
+      # Bước 2: Gọi trực tiếp file chạy của Capacitor trong node_modules để né lỗi npx
       - name: Sync with Capacitor
-        run: npx @capacitor/cli sync ios
+        run: node node_modules/@capacitor/cli/bin/cap sync ios
 
       # Bước 3: Ép Xcode dịch app dạng KHÔNG CẦN CHỮ KÝ (Bypass Cert của Apple)
       - name: Build iOS App (No Sign)
