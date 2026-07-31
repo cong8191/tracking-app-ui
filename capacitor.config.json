@@ -1,0 +1,10 @@
+{
+  "appId": "com.trackinggame.app",
+  "appName": "Tracking Game",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
