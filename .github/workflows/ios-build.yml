@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Đã nâng lên Node v22 để đáp ứng yêu cầu của Capacitor v8
+          node-version: '22'
 
       # Bước 1: Build ứng dụng React như bình thường
       - name: Install dependencies and build web app
@@ -23,24 +23,28 @@ jobs:
           npm install
           npm run build
 
-      # Bước 2: Đồng bộ code web vào dự án iOS
+      # Bước 2 (MỚI): Ép máy Mac ảo tự sinh ra thư mục ios chuẩn chỉnh từ đầu
+      - name: Add iOS Platform fresh on Mac
+        run: npx @capacitor/cli add ios
+
+      # Bước 3: Đồng bộ code web vào dự án iOS vừa tạo
       - name: Sync with Capacitor
         run: npx @capacitor/cli sync ios
 
-      # Bước 3: Ép Xcode dịch app dạng KHÔNG CẦN CHỮ KÝ (Bypass Cert của Apple)
+      # Bước 4: Ép Xcode dịch app dạng KHÔNG CẦN CHỮ KÝ (Bypass Cert của Apple)
       - name: Build iOS App (No Sign)
         run: |
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO clean build
 
-      # Bước 4: Đóng gói thủ công thành file .ipa sạch để mang về Windows tự ký
+      # Bước 5: Đóng gói thủ công thành file .ipa sạch để mang về Windows tự ký
       - name: Package to Unsigned .ipa
         run: |
           mkdir -p Payload
           mv ios/App/build/Debug-iphoneos/App.app Payload/
           zip -r tracking-game.ipa Payload
 
-      # Bước 5: Đẩy file .ipa lên mục Artifacts trên GitHub để tải về
+      # Bước 6: Đẩy file .ipa lên mục Artifacts trên GitHub để tải về
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
