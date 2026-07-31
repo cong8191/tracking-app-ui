@@ -23,9 +23,11 @@ jobs:
           npm install
           npm run build
 
-      # Bước 2 (MỚI): Ép máy Mac ảo tự sinh ra thư mục ios chuẩn chỉnh từ đầu
-      - name: Add iOS Platform fresh on Mac
-        run: npx @capacitor/cli add ios
+      # Bước 2: Xoá sạch thư mục ios cũ (nếu có) và ép máy Mac tự sinh lại từ đầu cho chuẩn
+      - name: Fresh Add iOS Platform
+        run: |
+          rm -rf ios
+          npx @capacitor/cli add ios
 
       # Bước 3: Đồng bộ code web vào dự án iOS vừa tạo
       - name: Sync with Capacitor
