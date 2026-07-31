@@ -17,15 +17,15 @@ jobs:
         with:
           node-version: '20'
 
-      # Bước 1: Build ứng dụng React như bình thường
+      # Bước 1: Build ứng dụng React như bình thường (Lúc này đã có Capacitor trong package.json)
       - name: Install dependencies and build web app
         run: |
           npm install
           npm run build
 
-      # Bước 2: Gọi trực tiếp file thực thi chuẩn trong thư mục .bin để sync code
+      # Bước 2: Đồng bộ code web vào dự án iOS (Giờ đã có local package nên chạy cực mượt)
       - name: Sync with Capacitor
-        run: ./node_modules/.bin/cap sync ios
+        run: npx @capacitor/cli sync ios
 
       # Bước 3: Ép Xcode dịch app dạng KHÔNG CẦN CHỮ KÝ (Bypass Cert của Apple)
       - name: Build iOS App (No Sign)
