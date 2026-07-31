@@ -33,11 +33,17 @@ jobs:
       - name: Sync with Capacitor
         run: npx @capacitor/cli sync ios
 
-      # Bước 4: Ép Xcode dịch app dạng KHÔNG CẦN CHỮ KÝ (Bypass Cert của Apple)
+      # Bước 4: Ép Xcode dịch app dạng KHÔNG CẦN CHỮ KÝ (Tự động nhận diện Workspace hoặc Project)
       - name: Build iOS App (No Sign)
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO clean build
+          if [ -d "App.xcworkspace" ]; then
+            echo "Phát hiện file Workspace. Tiến hành build với xcworkspace..."
+            xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO SYMROOT=$PWD/build clean build
+          else
+            echo "Không thấy Workspace. Tiến hành build trực tiếp với xcodeproj..."
+            xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO SYMROOT=$PWD/build clean build
+          fi
 
       # Bước 5: Đóng gói thủ công thành file .ipa sạch để mang về Windows tự ký
       - name: Package to Unsigned .ipa
