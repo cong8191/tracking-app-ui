@@ -282,73 +282,6 @@ export default function MultiFileUploader() {
     setUploading(false);
   };
 
-  const wakeLockRef = useRef(null);
-
-  const requestWakeLock = async () => {
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-        console.log('🔒 Screen Wake Lock activated for background upload protection');
-      }
-    } catch (err) {
-      console.log('Wake Lock Error:', err);
-    }
-  };
-
-  const releaseWakeLock = async () => {
-    try {
-      if (wakeLockRef.current) {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-        console.log('🔓 Screen Wake Lock released');
-      }
-    } catch (err) {
-      console.log('Wake Lock Release Error:', err);
-    }
-  };
-
-  // Tự động re-acquire WakeLock và tiếp tục Upload dở dang khi mở lại Tab / App trên iOS
-  useEffect(() => {
-    let capListener = null;
-
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        if (uploading) {
-          await requestWakeLock();
-          message.info('Đã kết nối lại - Đang tiếp tục upload ngầm...');
-        }
-      } else {
-        wakeLockRef.current = null;
-      }
-    };
-
-    // Lắng nghe sự kiện chuyển App trên iOS Native (Capacitor)
-    const initCapacitorListener = async () => {
-      try {
-        if (CapApp && typeof CapApp.addListener === 'function') {
-          capListener = await CapApp.addListener('appStateChange', async ({ isActive }) => {
-            if (isActive && uploading) {
-              await requestWakeLock();
-              message.info('Khôi phục App iOS - Đang tiếp tục upload...');
-            }
-          });
-        }
-      } catch (e) {
-        // Trình duyệt web thuần
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    initCapacitorListener();
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (capListener && typeof capListener.remove === 'function') {
-        capListener.remove();
-      }
-    };
-  }, [uploading]);
-
   const uploadChunkWithRetry = async (formData, maxRetries = 5) => {
     for (let i = 0; i < maxRetries; i++) {
       const controller = new AbortController();
@@ -418,7 +351,6 @@ export default function MultiFileUploader() {
     if (targets.length === 0) return;
 
     setUploading(true);
-    await requestWakeLock();
     try {
       const infoRes = await axios.post(`/getInfo`, { event_id: eventId });
       const baseCount = infoRes.data.result.gallery.length;
@@ -441,7 +373,6 @@ export default function MultiFileUploader() {
       }
     } catch (err) { message.error("Lỗi server."); }
     setUploading(false);
-    await releaseWakeLock();
     if (failedFiles.length === 0) message.success('Hoàn tất!');
   };
 

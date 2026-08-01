@@ -169,31 +169,7 @@ export default function App() {
     setSections(newSections);
   };
 
-  const wakeLockRef = useRef(null);
-
-  const requestWakeLock = async () => {
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-      }
-    } catch (err) {
-      console.log('Wake Lock Error:', err);
-    }
-  };
-
-  const releaseWakeLock = async () => {
-    try {
-      if (wakeLockRef.current) {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-      }
-    } catch (err) {
-      console.log('Wake Lock Release Error:', err);
-    }
-  };
-
   const saveCloud = async (sectionIndex, fieldIndex) => {
-    await requestWakeLock();
     try {
       let newSections = [...sections];
       newSections[sectionIndex]['event-details'][fieldIndex].loading = true;
@@ -214,8 +190,6 @@ export default function App() {
       newSections[sectionIndex]['event-details'][fieldIndex].loading = false;
       newSections[sectionIndex]['event-details'][fieldIndex].status = '';
       setSections(newSections);
-    } finally {
-      await releaseWakeLock();
     }
   };
 
