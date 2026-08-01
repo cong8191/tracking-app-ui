@@ -65,10 +65,11 @@ export default function CreateNew() {
   };
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 16, maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <MenuLink activeKey="create-gallery" />
       {/* Sử dụng Row và gutter để tạo khoảng cách giữa các phần tử */}
-      <Row gutter={[16, 16]}> 
+      <Row gutter={[16, 16]} style={{ marginLeft: 0, marginRight: 0 }}> 
+
         
         {/* Game Select: Mobile chiếm hết (24), Desktop chiếm 1 phần (6) */}
         {!gameId && (

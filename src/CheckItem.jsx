@@ -224,7 +224,7 @@ export default function CheckItem() {
   }
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: 20, width: '100%' }}>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: 16, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <MenuLink activeKey="check" />
       <div style={{ marginBottom: '10px' }}>
         <Select
@@ -247,9 +247,9 @@ export default function CheckItem() {
         />
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
         <DatePicker
-          style={{ width: '100%' }}
+          style={{ flex: '1 1 140px', minWidth: 0 }}
           value={selectedDate}
           onChange={(date) => setSelectedDate(date)}
           format="YYYY/MM/DD"

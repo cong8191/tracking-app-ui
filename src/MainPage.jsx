@@ -169,7 +169,31 @@ export default function App() {
     setSections(newSections);
   };
 
+  const wakeLockRef = useRef(null);
+
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      }
+    } catch (err) {
+      console.log('Wake Lock Error:', err);
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    } catch (err) {
+      console.log('Wake Lock Release Error:', err);
+    }
+  };
+
   const saveCloud = async (sectionIndex, fieldIndex) => {
+    await requestWakeLock();
     try {
       let newSections = [...sections];
       newSections[sectionIndex]['event-details'][fieldIndex].loading = true;
@@ -190,6 +214,8 @@ export default function App() {
       newSections[sectionIndex]['event-details'][fieldIndex].loading = false;
       newSections[sectionIndex]['event-details'][fieldIndex].status = '';
       setSections(newSections);
+    } finally {
+      await releaseWakeLock();
     }
   };
 
@@ -281,12 +307,13 @@ export default function App() {
             <div style={{
               display: "flex",
               gap: "4px",
-              flex: isMobile ? "1 1 100%" : "0 0 310px"
+              flex: isMobile ? "1 1 100%" : "0 0 310px",
+              maxWidth: "100%"
             }}>
               <DatePicker
                 format="YYYY/MM/DD"
                 disabled={field.status === "1"}
-                style={{ width: isMobile ? "50%" : "150px" }}
+                style={{ flex: 1, minWidth: 0 }}
                 value={field.from ? dayjs(field.from) : ''}
                 onChange={(date) => {
                   handleFieldChange(sectionIndex, fieldIndex, "from", date.format('YYYY/MM/DD'));
@@ -308,7 +335,7 @@ export default function App() {
                   />
                 }>
                 <Input
-                  style={{ width: isMobile ? "50%" : "150px" }}
+                  style={{ flex: 1, minWidth: 0 }}
                   disabled={field.status === "1"}
                   readOnly
                   placeholder="Chọn ngày"
@@ -321,7 +348,8 @@ export default function App() {
             {/* Cột 2: Select Event - Desktop tự giãn, Mobile 100% (XUỐNG DÒNG) */}
             <div style={{
               flex: isMobile ? "1 1 100%" : "1 1 auto",
-              minWidth: isMobile ? "100%" : "200px"
+              minWidth: 0,
+              maxWidth: "100%"
             }}>
               <Select allowClear
                 disabled={field.status === "1"}
@@ -331,7 +359,7 @@ export default function App() {
                 placeholder="Chọn sự kiện"
                 optionFilterProp="label"
                 popupMatchSelectWidth={false}
-                dropdownStyle={{ minWidth: 300, maxWidth: '95vw' }}
+                dropdownStyle={{ minWidth: 280, maxWidth: '95vw' }}
                 filterOption={(input, option) => {
                   const keyword = input.toLowerCase();
                   const name = option.label?.toLowerCase?.() || '';
@@ -393,11 +421,12 @@ export default function App() {
               display: "flex",
               gap: "8px",
               alignItems: "center",
-              flex: isMobile ? "1 1 100%" : "0 0 auto"
+              flex: isMobile ? "1 1 100%" : "0 0 auto",
+              maxWidth: "100%"
             }}>
               <Select
                 placeholder="Type"
-                style={{ width: isMobile ? "100%" : 130 }}
+                style={{ flex: isMobile ? "1 1 auto" : "0 0 130px", minWidth: 0 }}
                 value={field.type}
                 disabled={field.status === "1"}
                 onChange={(value) => handleFieldChange(sectionIndex, fieldIndex, "type", value)}
@@ -427,7 +456,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4 space-y-4">
+    <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4 space-y-4" style={{ maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+
       <MenuLink activeKey="home" />
 
       <div style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -436,13 +466,13 @@ export default function App() {
         }} disabled={isLogin}>Script Get Token</Button>
       </div>
 
-      <div style={{ marginBottom: "16px", textAlign: "center", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", width: "100%" }}>
+      <div style={{ marginBottom: "16px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
         <TextArea
           placeholder="Nhập cookie tại đây..."
           value={cookie}
           onChange={(e) => setCookie(e.target.value)}
           autoSize={{ minRows: 3, maxRows: 5 }}
-          style={{ width: isMobile ? "100%" : "500px" }}
+          style={{ width: "100%", maxWidth: "500px", boxSizing: "border-box", wordBreak: "break-all" }}
         />
         <Button type="primary" onClick={login} disabled={isLogin}>Save Token</Button>
       </div>
@@ -451,28 +481,29 @@ export default function App() {
         <DatePicker disabled={isLogin} value={selectedDate} onChange={(date) => setSelectedDate(date)} format="YYYY/MM/DD" />
       </div>
 
-      <div className="w-full max-w-screen-xl px-2">
+      <div className="w-full max-w-screen-xl px-2" style={{ width: '100%', maxWidth: '100vw', boxSizing: 'border-box', overflowX: 'hidden' }}>
         {sections.map((fields, sectionIndex) => (
-          <Collapse key={fields.id || sectionIndex} defaultActiveKey={["0"]} className="mb-4">
+          <Collapse key={fields.id || sectionIndex} defaultActiveKey={["0"]} className="mb-4" style={{ width: '100%', maxWidth: '100%' }}>
             <Panel
-              header={<div className="flex justify-between items-center w-full">{fields.name}</div>}
+              header={
+                <div style={{ fontWeight: 'bold', wordBreak: 'break-word', overflowWrap: 'anywhere', paddingRight: '4px' }}>
+                  {fields.name}
+                </div>
+              }
               key="0"
               extra={
-                <div>
-                  <Button type="text" icon={<BulbOutlined />} onClick={(e) => {
+                <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                  <Button type="text" size="small" icon={<BulbOutlined />} onClick={(e) => {
                     e.stopPropagation();
                     setSuggetEventModal({isModalVisible: true, gameId: fields.id, selectedDate: selectedDate, sectionIndex})
-                  }
-
-                  }>
-                    Gợi ý event
+                  }}>
+                    {!isMobile && "Gợi ý event"}
                   </Button>
 
-                  <Button type="text" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(sectionIndex, fields.id); }}>
-                    Data
+                  <Button type="text" size="small" icon={<DatabaseOutlined />} onClick={(e) => { e.stopPropagation(); handleOpenPopup(sectionIndex, fields.id); }}>
+                    {!isMobile && "Data"}
                   </Button>
                 </div>
-
               }
             >
               {renderSectionBody(fields, sectionIndex)}
@@ -496,6 +527,7 @@ export default function App() {
         }
         open={isPopupVisible}
         width={isMobile ? "95vw" : "fit-content"}
+        style={{ maxWidth: '95vw' }}
         onCancel={() => setIsPopupVisible(false)}
         footer={[<Button key="close" onClick={() => setIsPopupVisible(false)}>Đóng</Button>]}
         destroyOnClose
@@ -506,7 +538,7 @@ export default function App() {
       </Modal>
 
       {/* CÁC MODAL THÊM SỰ KIỆN GIỮ NGUYÊN */}
-      <Modal title="Thêm sự kiện mới" open={eventModalVisible} onCancel={() => setEventModalVisible(false)}
+      <Modal title="Thêm sự kiện mới" open={eventModalVisible} style={{ maxWidth: '95vw' }} onCancel={() => setEventModalVisible(false)}
         footer={[
           // Nút Delete nằm bên trái
           (form.getFieldValue('eventId')) &&
@@ -572,7 +604,7 @@ export default function App() {
         </Form>
       </Modal>
 
-      <Modal title="Chọn event" open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} destroyOnClose>
+      <Modal title="Chọn event" open={isModalOpen} style={{ maxWidth: '95vw' }} onCancel={() => setIsModalOpen(false)} footer={null} destroyOnClose>
         <SearchableTable gameId={sections[activeSectionIndex]?.id} returnParent={(data) => {
           setIsModalOpen(false);
           form.resetFields();

@@ -32,6 +32,7 @@ import {
   sortableKeyboardCoordinates 
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { App as CapApp } from '@capacitor/app';
 import MenuLink from './MenuLink';
 
 dayjs.extend(advancedFormat);
@@ -281,7 +282,74 @@ export default function MultiFileUploader() {
     setUploading(false);
   };
 
-  const uploadChunkWithRetry = async (formData, maxRetries = 3) => {
+  const wakeLockRef = useRef(null);
+
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.log('🔒 Screen Wake Lock activated for background upload protection');
+      }
+    } catch (err) {
+      console.log('Wake Lock Error:', err);
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        console.log('🔓 Screen Wake Lock released');
+      }
+    } catch (err) {
+      console.log('Wake Lock Release Error:', err);
+    }
+  };
+
+  // Tự động re-acquire WakeLock và tiếp tục Upload dở dang khi mở lại Tab / App trên iOS
+  useEffect(() => {
+    let capListener = null;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        if (uploading) {
+          await requestWakeLock();
+          message.info('Đã kết nối lại - Đang tiếp tục upload ngầm...');
+        }
+      } else {
+        wakeLockRef.current = null;
+      }
+    };
+
+    // Lắng nghe sự kiện chuyển App trên iOS Native (Capacitor)
+    const initCapacitorListener = async () => {
+      try {
+        if (CapApp && typeof CapApp.addListener === 'function') {
+          capListener = await CapApp.addListener('appStateChange', async ({ isActive }) => {
+            if (isActive && uploading) {
+              await requestWakeLock();
+              message.info('Khôi phục App iOS - Đang tiếp tục upload...');
+            }
+          });
+        }
+      } catch (e) {
+        // Trình duyệt web thuần
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    initCapacitorListener();
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (capListener && typeof capListener.remove === 'function') {
+        capListener.remove();
+      }
+    };
+  }, [uploading]);
+
+  const uploadChunkWithRetry = async (formData, maxRetries = 5) => {
     for (let i = 0; i < maxRetries; i++) {
       const controller = new AbortController();
       try {
@@ -350,6 +418,7 @@ export default function MultiFileUploader() {
     if (targets.length === 0) return;
 
     setUploading(true);
+    await requestWakeLock();
     try {
       const infoRes = await axios.post(`/getInfo`, { event_id: eventId });
       const baseCount = infoRes.data.result.gallery.length;
@@ -372,6 +441,7 @@ export default function MultiFileUploader() {
       }
     } catch (err) { message.error("Lỗi server."); }
     setUploading(false);
+    await releaseWakeLock();
     if (failedFiles.length === 0) message.success('Hoàn tất!');
   };
 
@@ -382,7 +452,7 @@ export default function MultiFileUploader() {
   const currentDate = dayjs();
 
   return (
-    <div onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} style={{ position: 'relative', minHeight: '100vh', width: '100%' }}>
+    <div onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} style={{ position: 'relative', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
       
       {isDraggingFile && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(24, 144, 255, 0.1)', border: '3px dashed #1890ff', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -391,39 +461,38 @@ export default function MultiFileUploader() {
         </div>
       )}
 
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: 20, width: '100%' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: 16, width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
         <MenuLink activeKey="upload" />
 
-        <Row gutter={[24, 24]}>
+        <Row gutter={[24, 24]} style={{ marginLeft: 0, marginRight: 0 }}>
           <Col span={24}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {failedFiles.length > 0 && !uploading && (
                 <Alert message={`Lỗi ở ${failedFiles.length} file.`} type="error" showIcon action={<Button size="small" danger icon={<SyncOutlined />} onClick={() => uploadFiles(true)}>Retry</Button>} />
               )}
 
-              {/* KHÔI PHỤC HÀNG NGÀY THÁNG ĐÚNG NHƯ ẢNH CỦA BẠN */}
-              <div style={{ margin: '10px 0 20px 0', textAlign: 'center' }}>
-                <div>
-                  <span style={{ display: 'inline-block', width: '101px' }}>Current Date: </span>
-                  <span> | </span>
-                  <Text copyable={{ text: currentDate.format('MMMM D, YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{currentDate.format('MMMM D, YYYY')}</Text>
-                  <span> | </span>
-                  <Text copyable={{ text: currentDate.format('MMMM Do YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{currentDate.format('MMMM Do YYYY')}</Text>
-                  <span> | </span>
-                  <Text copyable={{ text: currentDate.format('M/D/YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{currentDate.format('M/D/YYYY')}</Text>
-                  <span> | </span>
-                  <Text copyable={{ text: currentDate.format('M-D-YY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{currentDate.format('M-D-YY')}</Text>
+              {/* HÀNG NGÀY THÁNG ĐƯỢC CHỈNH TỰ ĐỘNG XUỐNG DÒNG NẾU TRÊN MOBILE */}
+              <div style={{ margin: '10px 0 20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8, maxWidth: '100%', overflowX: 'hidden' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontWeight: 'bold' }}>Current Date:</span>
+                  <Text copyable={{ text: currentDate.format('MMMM D, YYYY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{currentDate.format('MMMM D, YYYY')}</Text>
+                  <span>|</span>
+                  <Text copyable={{ text: currentDate.format('MMMM Do YYYY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{currentDate.format('MMMM Do YYYY')}</Text>
+                  <span>|</span>
+                  <Text copyable={{ text: currentDate.format('M/D/YYYY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{currentDate.format('M/D/YYYY')}</Text>
+                  <span>|</span>
+                  <Text copyable={{ text: currentDate.format('M-D-YY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{currentDate.format('M-D-YY')}</Text>
                 </div>
-                <div style={{ marginTop: 5 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
                   <DatePicker format="YYYY/MM/DD" style={{ width: '105px', padding: '2px 5px' }} value={searchDate} onChange={(date) => { setSearchDate(date); }} />
-                  <span> | </span>
-                  <Text copyable={{ text: searchDate.format('MMMM D, YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('MMMM D, YYYY')}</Text>
-                  <span> | </span>
-                  <Text copyable={{ text: searchDate.format('MMMM Do YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('MMMM Do YYYY')}</Text>
-                  <span> | </span>
-                  <Text copyable={{ text: searchDate.format('M/D/YYYY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('M/D/YYYY')}</Text>
-                  <span> | </span>
-                  <Text copyable={{ text: searchDate.format('M-D-YY') }} style={{ fontSize: '16px', fontWeight: 'bold' }}>{searchDate.format('M-D-YY')}</Text>
+                  <span>|</span>
+                  <Text copyable={{ text: searchDate.format('MMMM D, YYYY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{searchDate.format('MMMM D, YYYY')}</Text>
+                  <span>|</span>
+                  <Text copyable={{ text: searchDate.format('MMMM Do YYYY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{searchDate.format('MMMM Do YYYY')}</Text>
+                  <span>|</span>
+                  <Text copyable={{ text: searchDate.format('M/D/YYYY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{searchDate.format('M/D/YYYY')}</Text>
+                  <span>|</span>
+                  <Text copyable={{ text: searchDate.format('M-D-YY') }} style={{ fontSize: '14px', fontWeight: 'bold' }}>{searchDate.format('M-D-YY')}</Text>
                 </div>
               </div>
 

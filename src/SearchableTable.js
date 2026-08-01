@@ -142,29 +142,28 @@ export default function SearchableTable({gameId, returnParent}) {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 16, maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <MenuLink activeKey="search" />
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         {!gameId && (
           <Select showSearch
-          filterOption={(input, option) => {
-    const keyword = input.toLowerCase();
-    const name = option.label?.toLowerCase?.() || '';
-
-    return name.includes(keyword);
-  }}
-          style={{ width: 200 }}
-          placeholder="Chọn game (bắt buộc)"
-          value={game}
-          options={eventOptions}
-          onChange={value => setGame(value)}
-        >
-        </Select>
+            filterOption={(input, option) => {
+              const keyword = input.toLowerCase();
+              const name = option.label?.toLowerCase?.() || '';
+              return name.includes(keyword);
+            }}
+            style={{ flex: '1 1 150px', minWidth: 0 }}
+            placeholder="Chọn game (bắt buộc)"
+            value={game}
+            options={eventOptions}
+            onChange={value => setGame(value)}
+          >
+          </Select>
         )}
         
         <Input
           placeholder="Tìm theo từ khoá"
-          style={{ width: 200 }}
+          style={{ flex: '1 1 150px', minWidth: 0 }}
           value={keyword}
           onChange={e => setKeyword(e.target.value)}
         />
@@ -173,7 +172,9 @@ export default function SearchableTable({gameId, returnParent}) {
         </Button>
       </div>
       <Spin spinning={loading} tip="Đang tìm kiếm...">
-        <Table rowKey="href" dataSource={data} columns={columns} pagination={false} />
+        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+          <Table rowKey="href" dataSource={data} columns={columns} pagination={false} />
+        </div>
       </Spin>
     </div>
   );

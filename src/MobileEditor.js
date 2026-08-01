@@ -141,7 +141,7 @@ const MobileEditor = () => {
 
             </div>
 
-            <Row gutter={[16, 16]}>
+            <Row gutter={[16, 16]} style={{ marginLeft: 0, marginRight: 0 }}>
 
                 {/* Game Select: Mobile chiếm hết (24), Desktop chiếm 1 phần (6) */}
                 {!gameId && (
@@ -198,6 +198,9 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh', // Full màn hình điện thoại
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
         backgroundColor: '#fff',
     },
     header: {

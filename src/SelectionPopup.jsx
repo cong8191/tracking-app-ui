@@ -76,11 +76,12 @@ const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate }) => 
         onCancel();
       }}
       onCancel={onCancel}
-     width="auto"
-     style={{ 
-    maxWidth: '50vw', // Không vượt quá 90% chiều rộng màn hình
-    minWidth: '400px' // Đảm bảo không quá nhỏ khi ít dữ liệu
-  }}
+      width={undefined}
+      style={{ 
+        maxWidth: '90vw',
+        width: '90vw',
+        margin: '10px auto'
+      }}
       okText="Xác nhận"
       cancelText="Đóng"
     >

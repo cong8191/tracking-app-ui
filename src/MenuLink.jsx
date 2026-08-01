@@ -71,7 +71,7 @@ export default function MenuLink({ activeKey }) {
   };
 
   return (
-    <div style={{ marginBottom: 20, background: '#fff' }}>
+    <div style={{ marginBottom: 20, background: '#fff', width: '100%', maxWidth: '100vw', overflowX: 'auto', boxSizing: 'border-box' }}>
       <Menu
         onClick={handleMenuClick}
         selectedKeys={[activeKey]} // Highlight item đang được chọn
@@ -80,7 +80,8 @@ export default function MenuLink({ activeKey }) {
         style={{ 
           display: 'flex', 
           justifyContent: 'center', // Căn giữa menu
-          borderBottom: '1px solid #f0f0f0' 
+          borderBottom: '1px solid #f0f0f0',
+          maxWidth: '100%'
         }}
       />
     </div>

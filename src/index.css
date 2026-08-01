@@ -1,19 +1,96 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box !important;
+}
+
+html {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
 body {
   margin: 0;
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  position: relative;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Thêm để tương thích với vùng tai thỏ (notch) và các cạnh màn hình trên iOS */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* Ngăn scroll ngang không mong muốn trên toàn bộ trang */
-html, body {
-  width: 100%;
-  overflow-x: hidden;
+#root {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  position: relative;
 }
+
+/* Ngăn Ant Design components tạo overflow ngang trên mobile */
+.ant-row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+}
+
+.ant-collapse {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.ant-collapse-header {
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  max-width: 100% !important;
+}
+
+.ant-collapse-header-text {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+.ant-collapse-extra {
+  flex-shrink: 0 !important;
+}
+
+.ant-space {
+  max-width: 100% !important;
+}
+
+.ant-modal {
+  max-width: 95vw !important;
+  margin: 10px auto !important;
+}
+
+.ant-modal-content {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+.ant-select-dropdown, .ant-picker-dropdown, .ant-popover {
+  max-width: 95vw !important;
+  box-sizing: border-box !important;
+}
+
+img, video, iframe {
+  max-width: 100% !important;
+  height: auto;
+}
+
+
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
@@ -29,11 +106,14 @@ code {
   height: auto !important;
 }
 
-.table-cnd { clear: both; height: calc(100vh - 119px); width: 100%; overflow: auto; position: relative; } /* Sửa dvh thành vh để tương thích tốt hơn */
-.table-cnd  { border-color: #E3E8EE; width: 100%; margin: 0; border-top: none; }
-.table-cnd  TBODY { display: block; width: 100%; overflow: scroll; width: 100%; }
-.table-cnd  THEAD { display: block; width: 100%; position: sticky; top: 0px; background: #fff; color: #949aa4; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-.table-cnd  THEAD TH { padding: 14px 10px 12px 10px; text-align: center; }
+/* Cấu trúc lại CSS cho bảng để dùng sticky header hiện đại, chống tràn layout */
+.table-cnd {
+  border-color: #E3E8EE;
+  margin: 0;
+  border-top: none;
+  border-collapse: collapse; /* Giúp border và sticky hoạt động tốt hơn */
+}
+.table-cnd THEAD TH { padding: 14px 10px 12px 10px; text-align: center; position: sticky; top: 0; background: #fff; z-index: 1; color: #949aa4; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 .table-cnd  THEAD TH:before { content: ''; position: absolute; left: 0; bottom: 0; width: 100%; border-bottom: 1px solid #E3E8EE; }
 .table-cnd  THEAD TH.vo-cnd-sort { cursor: pointer; }
 /* .table-cBLE THEAD TH.vo-cnd-sort:after { content: ""; display: inline-block; width: 5px; height: 11px; vertical-align: -1px; margin-left: 4px; background: url(../../../img/site-specific/liquid-grit/icon-sort.svg) no-repeat center; background-size: 100% auto;  } */
@@ -41,7 +121,7 @@ code {
 .table-cnd  THEAD TH.vo-cnd-sort.vo-cnd-sort-asc { color: #2281E0; color: #3c4567; }
 .table-cnd  THEAD TH.vo-cnd-sort.vo-cnd-sort-desc:after,
 .table-cnd  THEAD TH.vo-cnd-sort.vo-cnd-sort-asc:after{ filter: saturate(500%) brightness(55%) }
-.table-cnd  TFOOT { display: block; border-top: 1px solid #E3E3E3; }
+.table-cnd  TFOOT { border-top: 1px solid #E3E3E3; }
 /* .table-cBLE TR { border-bottom: 1px solid #eef2f9; transition: background .18s; } */
 .table-cnd  TR:hover { background: #F2F5FA; }
 .table-cnd  THEAD TR:hover { background: #fff; }

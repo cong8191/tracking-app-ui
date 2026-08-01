@@ -67,7 +67,8 @@ export default function SQLiteFileUploader() {
   };
 
   return (
-    <div style={{ width: 500, margin: '0 auto', padding: 20 }}>
+    <div style={{ width: '100%', maxWidth: 500, margin: '0 auto', padding: 16, boxSizing: 'border-box' }}>
+
       <h3>Tải lên file SQLite</h3>
 
       <Upload
