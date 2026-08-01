@@ -16,12 +16,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
-      - name: Install and Build
+      # Bước 1: Build ứng dụng React như bình thường
+      - name: Install dependencies and build web app
         run: |
           npm install
-          npm run build # Tạo ra folder 'build'
+          npm run build
 
       - name: Deploy to Another Repo
         uses: JamesIves/github-pages-deploy-action@v4

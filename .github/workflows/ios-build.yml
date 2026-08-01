@@ -15,13 +15,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Giữ nguyên v22 vì Capacitor 6+ yêu cầu
-          cache: 'npm'
+          node-version: '22'
 
       # Bước 1: Build ứng dụng React như bình thường
-      - name: Install dependencies & Build
+      - name: Install dependencies and build web app
         run: |
-          npm ci
+          npm install
           npm run build
 
       # Bước 2: Xoá sạch thư mục ios cũ (nếu có) và ép máy Mac tự sinh lại từ đầu cho chuẩn
