@@ -34,19 +34,21 @@ const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate }) => 
 
        const response = await axios.post(`/get_event_suggest`, { gameId, selectedDate: selectedDate.format('YYYY/MM/DD')});
 
-      const data = response.data.map(item => ({
+      // Đảm bảo response.data là một mảng trước khi map
+      const responseData = Array.isArray(response.data) ? response.data : [];
+      const data = responseData.map(item => ({
         key: item.id,
         name: item.name,
         g_name: item.g_name,
         from: selectedDate.format('YYYY/MM/DD'),
         to: selectedDate.add(item.days_diff, "day").format('YYYY/MM/DD'),
         totalday: item.days_diff
-
       }));
 
       setData(data);
     } catch (error) {
       message.error("Không thể lấy dữ liệu sự kiện");
+      setData([]); // Reset data về mảng rỗng khi có lỗi
     } finally {
       setLoading(false);
     }

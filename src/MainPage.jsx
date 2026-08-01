@@ -115,11 +115,21 @@ export default function App() {
     try {
       setLogin(true);
       const response = await axios.get(`/games?date=${dateStr}`);
-      setSections(response.data);
+      const data = response.data;
+      // Đảm bảo data là một mảng, và mỗi item trong đó có 'events' và 'event-details' là một mảng
+      const sanitizedData = Array.isArray(data)
+        ? data.map(section => ({
+            ...section,
+            events: Array.isArray(section.events) ? section.events : [],
+            'event-details': Array.isArray(section['event-details']) ? section['event-details'] : [],
+          }))
+        : [];
+      setSections(sanitizedData);
       setLogin(false);
     } catch (err) {
       setLogin(false);
       console.error("❌ GET error:", err);
+      setSections([]); // Reset về mảng rỗng khi có lỗi
     }
   };
 

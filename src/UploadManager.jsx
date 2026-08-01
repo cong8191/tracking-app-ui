@@ -257,14 +257,19 @@ export default function MultiFileUploader() {
     const fetchEvents = async () => {
       try {
         const response = await axios.get(`/events`);
-        setEventOptions(response.data.map((item) => ({
+        // Đảm bảo response.data là một mảng trước khi map
+        const responseData = Array.isArray(response.data) ? response.data : [];
+        setEventOptions(responseData.map((item) => ({
           name: item.name,
           value: item.id,
           label: item.g_name ? `${item.name} ( ${item.g_name} ) - ${item.gameName}` : `${item.name} - ${item.gameName}`,
           event_id: item.gallery_id,
           post_slug: item.post_slug,
         })));
-      } catch (err) { console.error('❌ GET error:', err); }
+      } catch (err) {
+        console.error('❌ GET error:', err);
+        setEventOptions([]); // Reset về mảng rỗng khi có lỗi
+      }
     };
     fetchEvents();
   }, []);

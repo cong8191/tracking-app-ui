@@ -294,7 +294,8 @@ export default function CheckItem() {
             try {
               const response = await axios.post(`/check_item`, { gameId: game, checkData: lines, selectedDate: selectedDate.format("YYYY/MM/DD") });
               const data = response.data;
-              setFoundEvents(data.resultData);
+              // Đảm bảo resultData là một mảng để không gây lỗi
+              setFoundEvents(Array.isArray(data.resultData) ? data.resultData : []);
               setLoading(false)
             } catch (error) {
               setLoading(false)
