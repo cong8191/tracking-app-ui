@@ -5,6 +5,14 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Thêm để tương thích với vùng tai thỏ (notch) và các cạnh màn hình trên iOS */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Ngăn scroll ngang không mong muốn trên toàn bộ trang */
+html, body {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 code {
@@ -21,7 +29,7 @@ code {
   height: auto !important;
 }
 
-.table-cnd { clear: both; height: calc(100dvh - 119px); width: 100%; overflow: auto; position: relative; }
+.table-cnd { clear: both; height: calc(100vh - 119px); width: 100%; overflow: auto; position: relative; } /* Sửa dvh thành vh để tương thích tốt hơn */
 .table-cnd  { border-color: #E3E8EE; width: 100%; margin: 0; border-top: none; }
 .table-cnd  TBODY { display: block; width: 100%; overflow: scroll; width: 100%; }
 .table-cnd  THEAD { display: block; width: 100%; position: sticky; top: 0px; background: #fff; color: #949aa4; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
