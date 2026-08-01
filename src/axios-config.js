@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { App as CapApp } from '@capacitor/app';
+import { BackgroundTask } from '@capawesome/capacitor-background-task';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
 
@@ -46,9 +47,23 @@ if (typeof window !== 'undefined') {
   });
 
   try {
-    CapApp.addListener('appStateChange', ({ isActive }) => {
+    CapApp.addListener('appStateChange', async ({ isActive }) => {
       if (isActive && activeRequests > 0) {
         acquireWakeLock();
+      } else if (!isActive && activeRequests > 0) {
+        // KÍCH HOẠT NATIVE IOS BACKGROUND TASK CHÍNH THỨC TỪ APPLE
+        try {
+          const taskId = await BackgroundTask.beforeExit(async () => {
+            console.log('📱 Official iOS Native Background Task engaged');
+            while (activeRequests > 0) {
+              await new Promise((r) => setTimeout(r, 500));
+            }
+            BackgroundTask.finish({ taskId });
+            console.log('📱 Official iOS Native Background Task completed');
+          });
+        } catch (err) {
+          console.log('Background task error:', err);
+        }
       }
     });
   } catch (e) {

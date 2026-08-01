@@ -453,13 +453,13 @@ export default function App() {
         }} disabled={isLogin}>Script Get Token</Button>
 
         <Button type="primary" danger onClick={async () => {
-          message.info("BẮT ĐẦU TEST! Hãy vuốt về Home NGAY BÂY GIỜ (trong vòng 5s)...");
+          window.alert("BẮT ĐẦU TEST! Bấm OK rồi vuốt về Home NGAY BÂY GIỜ (trong vòng 5s)...");
           await new Promise(r => setTimeout(r, 5000));
           try {
             await axios.get('/listGame');
-            message.success("✅ Đã đẩy Request thành công trong lúc ở nền!");
+            window.alert("✅ Đã đẩy Request thành công trong lúc ở nền!");
           } catch (e) {
-            message.error("❌ Lỗi truyền dữ liệu ngầm!");
+            window.alert("❌ Lỗi truyền dữ liệu ngầm!");
           }
         }}>
           Test Chạy Nền (5s)
