@@ -20,7 +20,7 @@ export default function App() {
         <Route path="/check" element={<CheckItem />} />
         <Route path="/createNew" element={<CreateNew />} />
         <Route path="/updateContent" element={<MobileEditor />} />
-        <Route path="/vewImage/:event_id" element={<ViewImage />} />
+        <Route path="/viewImage/:event_id" element={<ViewImage />} />
       </Routes>
     </HashRouter>
   );

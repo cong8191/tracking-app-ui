@@ -15,21 +15,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22' # Capacitor 6+ yêu cầu Node 22
+          cache: 'npm'
 
-      # Bước 1: Build ứng dụng React như bình thường
-      - name: Install dependencies and build web app
+      # Bước 1: Cài đặt và Build ứng dụng React
+      - name: Install and Build Web App
         run: |
-          npm install
+          npm ci
           npm run build
 
-      # Bước 2: Xoá sạch thư mục ios cũ (nếu có) và ép máy Mac tự sinh lại từ đầu cho chuẩn
-      - name: Fresh Add iOS Platform
-        run: |
-          rm -rf ios
-          npx @capacitor/cli add ios
-
-      # Bước 3: Đồng bộ code web vào dự án iOS vừa tạo
+      # Bước 2: Đồng bộ code web vào dự án iOS đã có
       - name: Sync with Capacitor
         run: npx @capacitor/cli sync ios
 
