@@ -1,10 +1,10 @@
 {
-  "appId": "com.trackinggame.app",
-  "appName": "Tracking Game",
+  "appId": "com.cong8191.trackingapp",
+  "appName": "react-antd-ui",
   "webDir": "build",
-  "plugins": {
-    "CapacitorHttp": {
-      "enabled": true
-    }
-  }
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "bundledWebRuntime": false
 }
