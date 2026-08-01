@@ -215,6 +215,17 @@ export default function App() {
   useEffect(() => { readCookieDat(); }, []);
   useEffect(() => { fetchGameData(selectedDate.format("YYYY/MM/DD")); }, [selectedDate]);
 
+  // Tự động kéo lại dữ liệu mới nhất (GET) khi mở lại App từ màn hình Home
+  useEffect(() => {
+    const handleAppResume = () => {
+      if (document.visibilityState === 'visible') {
+        fetchGameData(selectedDate.format("YYYY/MM/DD"));
+      }
+    };
+    document.addEventListener('visibilitychange', handleAppResume);
+    return () => document.removeEventListener('visibilitychange', handleAppResume);
+  }, [selectedDate]);
+
   const handleDeleteEvent = async () => {
     try {
       await axios.post("/deleteEvent", {
@@ -434,10 +445,23 @@ export default function App() {
 
       <MenuLink activeKey="home" />
 
-      <div style={{ textAlign: "center", marginBottom: "20px" }}>
+      <div style={{ textAlign: "center", marginBottom: "20px", display: "flex", gap: "10px", justifyContent: "center" }}>
         <Button type="primary" onClick={() => {
           navigator.clipboard.writeText('copy(JSON.stringify({"csrf": window.csrfHash, "cookies" : document.cookie }));')
         }} disabled={isLogin}>Script Get Token</Button>
+
+        <Button type="primary" danger onClick={async () => {
+          message.info("BẮT ĐẦU TEST! Hãy vuốt về Home NGAY BÂY GIỜ (trong vòng 5s)...");
+          await new Promise(r => setTimeout(r, 5000));
+          try {
+            await axios.get('/listGame');
+            message.success("✅ Đã đẩy Request thành công trong lúc ở nền!");
+          } catch (e) {
+            message.error("❌ Lỗi truyền dữ liệu ngầm!");
+          }
+        }}>
+          Test Chạy Nền (5s)
+        </Button>
       </div>
 
       <div style={{ marginBottom: "16px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>

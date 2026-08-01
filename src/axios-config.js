@@ -90,8 +90,12 @@ instance.interceptors.response.use(
     }
 
     const config = error.config;
-    // Tự động retry ngầm 3 lần nếu đứt kết nối do iOS đóng băng mạng lúc chuyển app
-    if (config && (!error.response || error.response.status >= 500)) {
+    // CHỈ auto-retry cho GET requests hoặc Upload Chunk có flowIdentifier (an toàn không bị trùng lặp dữ liệu)
+    // KHÔNG tự động retry POST requests thông thường để tránh bị nhân đôi dữ liệu trên Server
+    const isGet = config?.method?.toLowerCase() === 'get';
+    const isChunkUpload = config?.url?.includes('/upload') && config?.data instanceof FormData;
+
+    if (config && (isGet || isChunkUpload) && (!error.response || error.response.status >= 500)) {
       config._retryCount = config._retryCount || 0;
       if (config._retryCount < 3) {
         config._retryCount += 1;
