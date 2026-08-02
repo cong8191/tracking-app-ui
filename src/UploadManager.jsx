@@ -401,21 +401,24 @@ export default function MultiFileUploader() {
       const baseCount = infoRes.data.result.gallery.length;
       
       const FILE_CONCURRENCY = 2; 
+      const fileQueue = [...targets];
 
-      for (let i = 0; i < targets.length; i += FILE_CONCURRENCY) {
-        const batch = targets.slice(i, i + FILE_CONCURRENCY);
-        
-        await Promise.allSettled(batch.map((f) => {
+      // Dùng Concurrency File Queue liên tục không ngắt quãng giữa các đợt file
+      const fileWorkers = Array(FILE_CONCURRENCY).fill(null).map(async () => {
+        while (fileQueue.length > 0) {
+          const f = fileQueue.shift();
+          if (!f) break;
           const globalIdx = fileList.findIndex(item => item.id === f.id);
-          return processSingleFile(f, baseCount + 1 + globalIdx)
-            .then(() => {
-              setFailedFiles(prev => prev.filter(fid => fid !== f.id));
-            })
-            .catch(() => {
-              setFailedFiles(prev => [...new Set([...prev, f.id])]);
-            });
-        }));
-      }
+          try {
+            await processSingleFile(f, baseCount + 1 + globalIdx);
+            setFailedFiles(prev => prev.filter(fid => fid !== f.id));
+          } catch (err) {
+            setFailedFiles(prev => [...new Set([...prev, f.id])]);
+          }
+        }
+      });
+
+      await Promise.all(fileWorkers);
     } catch (err) { message.error("Lỗi server."); }
     
     setUploading(false);

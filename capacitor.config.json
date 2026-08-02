@@ -6,5 +6,10 @@
     "androidScheme": "https",
     "iosScheme": "capacitor"
   },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  },
   "bundledWebRuntime": false
 }
