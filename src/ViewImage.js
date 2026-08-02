@@ -16,8 +16,9 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 
 const { Text, Title } = Typography;
 
-const ViewImage = () => {
-  const { event_id } = useParams();
+const ViewImage = ({ event_id: propEventId }) => {
+  const params = useParams();
+  const event_id = propEventId || params.event_id;
   const [apiData, setApiData] = useState({ gallery: [] });
   const [loading, setLoading] = useState(false);
   const [index, setIndex] = useState(-1);
@@ -188,7 +189,7 @@ const ViewImage = () => {
                   const ext = getFileExt(item.file_url);
                   const isLast = visibleData.length === idx + 1;
                   return (
-                    <Col xs={12} sm={8} md={6} lg={4} xl={3} key={item.id} ref={isLast ? lastElementRef : null}>
+                    <Col xs={8} sm={6} md={4} lg={3} key={item.id} ref={isLast ? lastElementRef : null}>
                       <Card
                         className="custom-image-card"
                         hoverable
@@ -196,11 +197,19 @@ const ViewImage = () => {
                         cover={
                           <div style={imgContainerStyle}>
                             <img 
-                                src={item.small} 
+                                src={item.large || item.small} 
                                 alt={item.name} 
-                                style={imageStyle} 
+                                style={{
+                                  maxWidth: "100%",
+                                  maxHeight: "100%",
+                                  width: "auto",
+                                  height: "auto",
+                                  objectFit: "contain",
+                                  display: "block",
+                                  margin: "0 auto",
+                                  transition: 'opacity 0.3s ease-in'
+                                }} 
                                 loading="lazy" 
-                                onLoad={(e) => e.target.style.opacity = 1}
                             />
                             {isVideo(ext) && <div style={playIconOverlay}>▶</div>}
                             
@@ -249,6 +258,7 @@ const ViewImage = () => {
         open={index >= 0}
         close={() => setIndex(-1)}
         slides={slides}
+        carousel={{ imageFit: "contain" }}
         plugins={[Thumbnails, Zoom, Video]}
         video={{ autoPlay: true, controls: true }}
       />
@@ -285,8 +295,21 @@ const ViewImage = () => {
           visibility: visible !important;
         }
 
+        .custom-image-card .ant-card-cover > div {
+          height: 260px !important;
+        }
+
+        .custom-image-card img {
+          object-fit: contain !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+        }
+
         /* Responsive cho Mobile */
         @media (max-width: 767px) {
+          .custom-image-card .ant-card-cover > div {
+            height: 180px !important;
+          }
           .btn-delete-node {
             opacity: 0.7; /* Mobile không có hover nên hiện mờ mờ sẵn */
             visibility: visible;
@@ -321,17 +344,22 @@ const stickyHeaderWrapper = {
 
 const imgContainerStyle = {
   position: "relative",
-  paddingTop: "75%",
-  background: "#e9e9e9",
+  height: "260px",
+  background: "#f0f2f5",
   overflow: 'hidden',
-  borderRadius: '4px 4px 0 0'
+  borderRadius: '4px 4px 0 0',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '4px'
 };
 
 const imageStyle = {
-  position: "absolute",
-  top: 0, left: 0,
-  width: "100%", height: "100%",
-  objectFit: "cover",
+  maxWidth: "100%",
+  maxHeight: "100%",
+  width: "auto",
+  height: "auto",
+  objectFit: "contain",
   opacity: 0,
   transition: 'opacity 0.3s ease-in'
 };

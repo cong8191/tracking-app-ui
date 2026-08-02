@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Collapse, Space, DatePicker, Select, Tag, Popover, Input, Modal, Form, Spin, message } from "antd";
+import { Button, Collapse, Space, DatePicker, Select, Tag, Popover, Input, Modal, Form, Spin, message, Alert } from "antd";
+import { Capacitor } from '@capacitor/core';
 
 
 import {
@@ -7,7 +8,9 @@ import {
   EyeOutlined, LoadingOutlined, PlusOutlined, ReadOutlined,
   DatabaseOutlined,
   ExpandOutlined,
-  BulbOutlined
+  BulbOutlined,
+  ReloadOutlined,
+  KeyOutlined
 } from "@ant-design/icons";
 
 import dayjs from "dayjs";
@@ -17,12 +20,15 @@ import SearchableTable from "./SearchableTable";
 import TextArea from "antd/es/input/TextArea";
 import MenuLink from "./MenuLink";
 import SelectionPopup from "./SelectionPopup";
+import ViewImage from "./ViewImage";
 
 const { Panel } = Collapse;
 const { Option } = Select;
 
 export default function App() {
   const [sections, setSections] = useState([]);
+  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
+  const [loginWebModalOpen, setLoginWebModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(null);
@@ -135,6 +141,35 @@ export default function App() {
     }
   };
 
+  const refreshEventsOnly = async (dateStr) => {
+    try {
+      setLogin(true);
+      const response = await axios.get(`/games?date=${dateStr}`);
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setSections(prevSections => {
+          return prevSections.map(oldSection => {
+            const newSectionData = data.find(s => s.id === oldSection.id);
+            if (newSectionData && Array.isArray(newSectionData.events)) {
+              return {
+                ...oldSection,
+                events: newSectionData.events // CHỈ cập nhật danh sách Event gợi ý trong dropdown
+                // Giữ nguyên 100% 'event-details' (các ô input người dùng đang nhập dở)
+              };
+            }
+            return oldSection;
+          });
+        });
+        message.success('Đã cập nhật danh sách Sự kiện (Giữ nguyên dữ liệu đang nhập)!');
+      }
+      setLogin(false);
+    } catch (err) {
+      setLogin(false);
+      console.error("❌ GET error:", err);
+      message.error("Lỗi cập nhật danh sách sự kiện!");
+    }
+  };
+
   const login = async () => {
     setLogin(true);
     try {
@@ -207,12 +242,77 @@ export default function App() {
   const readCookieDat = async () => {
     try {
       const response = await axios.get(`/readDataCookies`);
-      setCookie(response.data?.result);
+      const rawData = response.data?.result;
+      
+      if (rawData) {
+        let finalCookieJson = '';
+        if (typeof rawData === 'string' && rawData.trim().startsWith('{')) {
+          finalCookieJson = rawData;
+        } else {
+          const csrfMatch = typeof rawData === 'string' ? rawData.match(/var\s+csrfHash\s*=\s*['"]([^'"]+)['"]/) : null;
+          const extractedCsrf = csrfMatch ? csrfMatch[1] : (rawData?.csrf || 'e873a075f5587c1c013772ef1f501333');
+          const cookieStr = typeof rawData === 'object' ? (rawData.cookies || '') : rawData;
+          
+          finalCookieJson = JSON.stringify({
+            csrf: extractedCsrf,
+            cookies: cookieStr
+          });
+        }
+        
+        setCookie(finalCookieJson);
+        message.success('Đã tự động nạp Token & Cookie JSON mới nhất!');
+      } else {
+        message.warning('Chưa có dữ liệu Cookie trên Server.');
+      }
     } catch (err) {
-      setCookie('');
       console.error("❌ GET error:", err);
+      message.error('Lỗi khi đọc Cookie từ Server.');
     }
-  }
+  };
+
+  const extractDirectlyFromPopup = (win) => {
+    try {
+      if (win && !win.closed) {
+        const doc = win.document;
+        if (doc) {
+          const cookiesStr = doc.cookie || '';
+          const htmlStr = doc.documentElement ? doc.documentElement.innerHTML : '';
+          const csrfMatch = htmlStr.match(/var\s+csrfHash\s*=\s*['"]([^'"]+)['"]/);
+          const csrfVal = win.csrfHash || (csrfMatch ? csrfMatch[1] : '');
+
+          if (cookiesStr && csrfVal) {
+            const jsonToken = JSON.stringify({
+              csrf: csrfVal,
+              cookies: cookiesStr
+            });
+            setCookie(jsonToken);
+            message.success('Đã bóc tách Token & Cookie JSON trực tiếp từ Popup!');
+            try { win.close(); } catch(e) {}
+            return true;
+          }
+        }
+      }
+    } catch (err) {
+      // Bỏ qua lỗi cross-origin tạm thời cho tới khi cùng origin hoặc lấy được dữ liệu
+    }
+    return false;
+  };
+
+  const handleNativeAppLogin = async () => {
+    try {
+      const loginWin = window.open('https://my.liquidandgrit.com/admin/login', 'LiquidGritAuthWindow', 'width=600,height=750');
+      message.info('Vui lòng đăng nhập. Token & Cookie sẽ được bóc tách trực tiếp từ cửa sổ Popup!');
+      
+      const timer = setInterval(() => {
+        const success = extractDirectlyFromPopup(loginWin);
+        if (success || (loginWin && loginWin.closed)) {
+          clearInterval(timer);
+        }
+      }, 500);
+    } catch (e) {
+      console.error('Native login error:', e);
+    }
+  };
 
   useEffect(() => { readCookieDat(); }, []);
   useEffect(() => { fetchGameData(selectedDate.format("YYYY/MM/DD")); }, [selectedDate]);
@@ -365,7 +465,7 @@ export default function App() {
                         {event.name} {event.g_name ? ` (${event.g_name})` : ''}
                       </div>
                       <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                        <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); window.open('vewImage/' + event.gallery_id, '_blank'); }} />
+                        <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: event.gallery_id }); }} />
                         {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
                         <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
                         <Button
@@ -441,20 +541,6 @@ export default function App() {
           navigator.clipboard.writeText('copy(JSON.stringify({"csrf": window.csrfHash, "cookies" : document.cookie }));')
         }} disabled={isLogin}>Script Get Token</Button>
 
-        <Button type="primary" danger onClick={async () => {
-          window.alert("BẮT ĐẦU TEST! Bấm OK ➔ Request gửi NGAY ➔ Hãy vuốt về Home lập tức!");
-          const startTime = Date.now();
-          try {
-            // Gửi request NGAY LẬP TỨC (để activeRequests = 1 kích hoạt Native Background Task)
-            await axios.get('/listGame');
-            const duration = Math.round((Date.now() - startTime) / 1000);
-            window.alert(`✅ Thành công! Request đã chạy xong ngầm sau ${duration} giây!`);
-          } catch (e) {
-            window.alert("❌ Lỗi truyền dữ liệu ngầm!");
-          }
-        }}>
-          Test Chạy Nền Thật
-        </Button>
       </div>
 
       <div style={{ marginBottom: "16px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
@@ -465,11 +551,19 @@ export default function App() {
           autoSize={{ minRows: 3, maxRows: 5 }}
           style={{ width: "100%", maxWidth: "500px", boxSizing: "border-box", wordBreak: "break-all" }}
         />
-        <Button type="primary" onClick={login} disabled={isLogin}>Save Token</Button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Button type="primary" onClick={login} disabled={isLogin}>Save Token</Button>
+          {Capacitor.isNativePlatform() && (
+            <Button icon={<KeyOutlined />} type="primary" onClick={handleNativeAppLogin}>
+              📱 Đăng nhập App Lấy Cookie Tự Động
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div style={{ marginBottom: "16px", textAlign: "center" }}>
+      <div style={{ marginBottom: "16px", textAlign: "center", display: "flex", justifyContent: "center", gap: "8px", alignItems: "center" }}>
         <DatePicker disabled={isLogin} value={selectedDate} onChange={(date) => setSelectedDate(date)} format="YYYY/MM/DD" />
+        <Button icon={<ReloadOutlined />} onClick={() => refreshEventsOnly(selectedDate.format("YYYY/MM/DD"))} title="Tải lại danh sách sự kiện (Giữ nguyên dữ liệu đang nhập)" />
       </div>
 
       <div className="w-full max-w-screen-xl px-2" style={{ width: '100%', maxWidth: '100vw', boxSizing: 'border-box', overflowX: 'hidden' }}>
@@ -634,6 +728,65 @@ export default function App() {
 
         }}
       />
+
+      {/* MODAL XEM ẢNH / GALLERY POPUP CHUẨN MOBILE */}
+      <Modal
+        open={viewImageModal.open}
+        onCancel={() => setViewImageModal({ open: false, galleryId: null })}
+        width="95vw"
+        style={{ maxWidth: '95vw', top: 10 }}
+        footer={null}
+        destroyOnClose
+      >
+        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
+      </Modal>
+      {/* MODAL MỞ TRÌNH DUYỆT ĐĂNG NHẬP LIQUIDANDGRIT */}
+      <Modal
+        title="🔐 Đăng nhập liquidandgrit.com để tự lấy Cookie"
+        open={loginWebModalOpen}
+        onCancel={async () => {
+          setLoginWebModalOpen(false);
+          await readCookieDat();
+        }}
+        width="95vw"
+        style={{ maxWidth: '850px', top: 15 }}
+        footer={[
+          <Button key="fetch" type="primary" icon={<CloudOutlined />} onClick={async () => {
+            setLoginWebModalOpen(false);
+            await readCookieDat();
+          }}>
+            Tự điền Cookie & Đóng
+          </Button>,
+          <Button key="close" onClick={async () => {
+            setLoginWebModalOpen(false);
+            await readCookieDat();
+          }}>
+            Đóng
+          </Button>
+        ]}
+        destroyOnClose
+      >
+        <div style={{ padding: '16px 0', textAlign: 'center' }}>
+          <Alert
+            message="Hướng dẫn Đăng nhập:"
+            description="Bấm nút bên dưới để mở trang đăng nhập bảo mật. Sau khi đăng nhập xong, hãy đóng cửa sổ và bấm nút 'Tự điền Cookie & Đóng' để ứng dụng tự nạp Token & Cookie JSON."
+            type="info"
+            showIcon
+            style={{ marginBottom: 20, textAlign: 'left' }}
+          />
+          <Button
+            type="primary"
+            size="large"
+            icon={<KeyOutlined />}
+            style={{ height: '48px', fontSize: '16px', borderRadius: '8px' }}
+            onClick={() => {
+              window.open('https://my.liquidandgrit.com/admin/login', '_blank', 'width=600,height=750');
+            }}
+          >
+            🔑 Mở Trang Đăng Nhập LiquidAndGrit (Chuẩn Bảo Mật)
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

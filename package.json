@@ -23,6 +23,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:web": "react-scripts build",
+    "build:app": "react-scripts build && npx cap sync ios",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

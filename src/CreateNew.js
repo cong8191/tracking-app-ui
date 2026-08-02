@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Input, Select, Button, message, Checkbox, DatePicker, Row, Col } from 'antd'; // Import thêm Row, Col
+import { Input, Select, Button, message, Checkbox, DatePicker, Row, Col, AutoComplete, Tag } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import axios from './axios-config';
 import dayjs from 'dayjs';
 import MenuLink from './MenuLink';
@@ -9,25 +10,46 @@ export default function CreateNew() {
   const [game, setGame] = useState();
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
   const [eventOptions, setEventOptions] = useState([]);
+  const [existingGalleries, setExistingGalleries] = useState([]);
   const [isContent, setContent] = useState(false);
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [urlEdit, setURLEdit] = useState(undefined);
 
-  const fetcEventData = async () => {
+  const fetcEventData = async (showToast = false) => {
     try {
+      setRefreshLoading(true);
       const response = await axios.get(`/listGame`);
       setEventOptions(response.data.map((item) => {
         return { 'value': item.id, 'label': item.name }
-      }))
+      }));
+
+      const eventsRes = await axios.get(`/events`);
+      const responseData = Array.isArray(eventsRes.data) ? eventsRes.data : [];
+      setExistingGalleries(responseData.map((item) => ({
+        value: item.name,
+        label: item.g_name ? `${item.name} ( ${item.g_name} ) - ${item.gameName}` : `${item.name} - ${item.gameName}`,
+        name: item.name,
+        galleryId: item.gallery_id || item.id,
+        gameId: item.gameId || item.game_id,
+      })));
+      if (showToast) message.success('Đã cập nhật danh sách mới nhất!');
     } catch (err) {
       console.error("❌ GET error:", err);
+      if (showToast) message.error('Lỗi khi cập nhật dữ liệu!');
+    } finally {
+      setRefreshLoading(false);
     }
   };
 
   useEffect(() => {
     fetcEventData();
   }, []);
+
+  const isDuplicate = existingGalleries.some(
+    g => g.name?.trim().toLowerCase() === keyword?.trim().toLowerCase()
+  );
 
   const handleSearch = async () => {
     if (!game) {
@@ -90,14 +112,30 @@ export default function CreateNew() {
           </Col>
         )}
 
-        {/* Input Name */}
-        <Col xs={24} md={6} lg={5}>
-          <Input
-            placeholder="Tên gallery (bắt buộc)"
-            style={{ width: '100%' }}
-            value={keyword}
-            onChange={e => setKeyword(e.target.value)}
-          />
+        {/* Input / AutoComplete Name */}
+        <Col xs={24} md={6} lg={6}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <AutoComplete
+              options={existingGalleries}
+              value={keyword}
+              onChange={val => setKeyword(val)}
+              onSelect={(val, option) => {
+                setKeyword(option.name || val);
+              }}
+              filterOption={(input, option) =>
+                (option?.label?.toLowerCase() || '').includes(input.toLowerCase())
+              }
+              placeholder="Tên gallery (bắt buộc)"
+              allowClear
+              style={{ flex: 1 }}
+            />
+            <Button icon={<ReloadOutlined />} onClick={() => fetcEventData(true)} loading={refreshLoading} title="Tải lại danh sách Gallery" />
+          </div>
+          {isDuplicate && (
+            <div style={{ marginTop: 4 }}>
+              <Tag color="warning">⚠️ Gallery này đã tồn tại</Tag>
+            </div>
+          )}
         </Col>
 
         {/* Date Picker */}

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
-  Button, Progress, List, Typography, Input, message, AutoComplete, Upload, Card, Row, Col, DatePicker, Alert,
+  Button, Progress, List, Typography, Input, message, AutoComplete, Upload, Card, Row, Col, DatePicker, Alert, Modal,
 } from 'antd';
 import {
-  UploadOutlined, DeleteOutlined, HolderOutlined, PlusCircleOutlined, InboxOutlined, SyncOutlined, SnippetsOutlined, ExpandOutlined, EyeOutlined
+  UploadOutlined, DeleteOutlined, HolderOutlined, PlusCircleOutlined, InboxOutlined, SyncOutlined, SnippetsOutlined, ExpandOutlined, EyeOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import axios from './axios-config';
 import dayjs from 'dayjs';
@@ -34,6 +34,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { App as CapApp } from '@capacitor/app';
 import MenuLink from './MenuLink';
+import ViewImage from './ViewImage';
 
 dayjs.extend(advancedFormat);
 const { Text } = Typography;
@@ -158,6 +159,7 @@ export default function MultiFileUploader() {
   const dragCounter = useRef(0); 
 
   const [previewIndex, setPreviewIndex] = useState(-1);
+  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
@@ -254,26 +256,33 @@ export default function MultiFileUploader() {
     }
   };
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await axios.get(`/events`);
-        // Đảm bảo response.data là một mảng trước khi map
-        const responseData = Array.isArray(response.data) ? response.data : [];
-        setEventOptions(responseData.map((item) => ({
-          name: item.name,
-          value: item.id,
-          label: item.g_name ? `${item.name} ( ${item.g_name} ) - ${item.gameName}` : `${item.name} - ${item.gameName}`,
-          event_id: item.gallery_id,
-          post_slug: item.post_slug,
-        })));
-      } catch (err) {
-        console.error('❌ GET error:', err);
-        setEventOptions([]); // Reset về mảng rỗng khi có lỗi
-      }
-    };
-    fetchEvents();
+  const [loadingEvents, setLoadingEvents] = useState(false);
+
+  const fetchEvents = useCallback(async (showToast = false) => {
+    try {
+      setLoadingEvents(true);
+      const response = await axios.get(`/events`);
+      const responseData = Array.isArray(response.data) ? response.data : [];
+      setEventOptions(responseData.map((item) => ({
+        name: item.name,
+        value: item.id,
+        label: item.g_name ? `${item.name} ( ${item.g_name} ) - ${item.gameName}` : `${item.name} - ${item.gameName}`,
+        event_id: item.gallery_id,
+        post_slug: item.post_slug,
+      })));
+      if (showToast) message.success('Đã làm mới danh sách Event!');
+    } catch (err) {
+      console.error('❌ GET error:', err);
+      setEventOptions([]);
+      if (showToast) message.error('Lỗi tải danh sách Event!');
+    } finally {
+      setLoadingEvents(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   const clearAll = () => {
     setFileList([]);
@@ -478,18 +487,19 @@ export default function MultiFileUploader() {
               </div>
 
               <Card size="small" bordered={false} style={{ background: '#fafafa' }}>
-                <div style={{ marginBottom: 12 }}>
-                  <AutoComplete options={eventOptions} value={eventId} style={{ width: '100%' }} placeholder="Nhập hoặc chọn Event ID"
+                <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <AutoComplete options={eventOptions} value={eventId} style={{ flex: 1 }} placeholder="Nhập hoặc chọn Event ID"
                     allowClear
                     onChange={(val, opt) => { setEventId(opt?.event_id || val); setURLEdit(opt?.event_id ? `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${opt.event_id}` : undefined); setURL(opt?.post_slug ? `https://my.liquidandgrit.com/library/gallery/${opt.post_slug}` : undefined); setEventName(opt?.name); }}
                     filterOption={(input, opt) => (opt?.label?.toLowerCase().includes(input.toLowerCase()))}
                   />
+                  <Button icon={<ReloadOutlined />} onClick={() => fetchEvents(true)} loading={loadingEvents} title="Tải lại danh sách Event" />
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <Button danger onClick={clearAll} disabled={fileList.length === 0} size="small">Clear All</Button>
                   {urlEdit && <a href={urlEdit} target="_blank" rel="noopener noreferrer">Edit Gallery</a>}
                   {url && <a href={url} target="_blank" rel="noopener noreferrer">Xem Gallery</a>}
-                  {eventId && <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); window.open('vewImage/' + eventId, '_blank'); }} /> }
+                  {eventId && <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: eventId }); }} /> }
                   <Text copyable={{ text: eventName || '' }} strong>{eventName || ''}</Text>
                 </div>
               </Card>
@@ -554,6 +564,18 @@ export default function MultiFileUploader() {
         plugins={[Video, Zoom]}
         video={{ autoPlay: true, controls: true, playsInline: true }}
       />
+
+      {/* MODAL XEM GALLERY POPUP CHUẨN MOBILE */}
+      <Modal
+        open={viewImageModal.open}
+        onCancel={() => setViewImageModal({ open: false, galleryId: null })}
+        width="95vw"
+        style={{ maxWidth: '95vw', top: 10 }}
+        footer={null}
+        destroyOnClose
+      >
+        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
+      </Modal>
     </div>
   );
 }
