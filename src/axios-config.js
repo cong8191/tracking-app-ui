@@ -50,13 +50,14 @@ if (typeof window !== 'undefined') {
     CapApp.addListener('appStateChange', async ({ isActive }) => {
       if (!isActive) {
         // Khi vuốt về Home hoặc chuyển App khác trên iOS
-        if (activeRequests > 0) {
+        const isUploading = typeof window !== 'undefined' && window.isUploadingActive;
+        if (activeRequests > 0 || isUploading) {
           try {
             const taskId = await BackgroundTask.beforeExit(async () => {
               console.log('📱 Official iOS Native Background Task engaged');
               let checkCount = 0;
-              // Giữ luồng CPU & Mạng Native của iOS chạy liên tục cho đến khi xong request (tối đa 60s)
-              while (activeRequests > 0 && checkCount < 120) {
+              // Giữ luồng CPU & Mạng Native của iOS chạy liên tục cho tới khi toàn bộ file/chunk upload xong (tối đa 150s)
+              while ((activeRequests > 0 || (typeof window !== 'undefined' && window.isUploadingActive)) && checkCount < 300) {
                 await new Promise((r) => setTimeout(r, 500));
                 checkCount++;
               }
@@ -69,7 +70,7 @@ if (typeof window !== 'undefined') {
         }
       } else {
         // Khi quay lại màn hình chính của App
-        if (activeRequests > 0) {
+        if (activeRequests > 0 || (typeof window !== 'undefined' && window.isUploadingActive)) {
           acquireWakeLock();
         }
       }

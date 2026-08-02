@@ -366,20 +366,23 @@ export default function MultiFileUploader() {
       chunksFormData.push(formData);
     }
 
-    const normalChunks = chunksFormData.slice(0, -1);
-    const lastChunk = chunksFormData[chunksFormData.length - 1];
     let completed = 0;
-    const CHUNK_CONCURRENCY = 5; 
+    const CHUNK_CONCURRENCY = 3; 
+    const queue = [...chunksFormData];
 
-    for (let i = 0; i < normalChunks.length; i += CHUNK_CONCURRENCY) {
-      const batch = normalChunks.slice(i, i + CHUNK_CONCURRENCY);
-      await Promise.all(batch.map(form => uploadChunkWithRetry(form).then(() => {
+    // Dùng Concurrency Worker Pool khởi tạo luồng song song liên tục
+    // Giúp các request HTTP được nối tiếp trên tầng mạng Native iOS mà không bị đóng băng JS event loop khi ra Home
+    const workers = Array(CHUNK_CONCURRENCY).fill(null).map(async () => {
+      while (queue.length > 0) {
+        const formData = queue.shift();
+        if (!formData) break;
+        await uploadChunkWithRetry(formData);
         completed++;
         setProgressMap(prev => ({ ...prev, [id]: Math.round((completed / totalChunks) * 100) }));
-      })));
-    }
+      }
+    });
 
-    await uploadChunkWithRetry(lastChunk);
+    await Promise.all(workers);
     setProgressMap(prev => ({ ...prev, [id]: 100 }));
   };
 
@@ -391,6 +394,8 @@ export default function MultiFileUploader() {
     if (targets.length === 0) return;
 
     setUploading(true);
+    if (typeof window !== 'undefined') window.isUploadingActive = true;
+
     try {
       const infoRes = await axios.post(`/getInfo`, { event_id: eventId });
       const baseCount = infoRes.data.result.gallery.length;
@@ -412,7 +417,9 @@ export default function MultiFileUploader() {
         }));
       }
     } catch (err) { message.error("Lỗi server."); }
+    
     setUploading(false);
+    if (typeof window !== 'undefined') window.isUploadingActive = false;
     if (failedFiles.length === 0) message.success('Hoàn tất!');
   };
 
