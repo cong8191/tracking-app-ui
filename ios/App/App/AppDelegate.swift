@@ -5,6 +5,7 @@ import Capacitor
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    var bgTask: UIBackgroundTaskIdentifier = .invalid
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -12,17 +13,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+        // KÍCH HOẠT NGAY LẬP TỨC TỪ MILLISECOND ĐẦU TIÊN KHI NGÓN TAY VỪA CHẠM VUỐT VỀ HOME
+        if self.bgTask == .invalid {
+            self.bgTask = application.beginBackgroundTask(withName: "CapacitorNativeUploadTask") {
+                application.endBackgroundTask(self.bgTask)
+                self.bgTask = .invalid
+            }
+        }
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        // ĐẢM BẢO CHẮC CHẮN NATIVE TASK ĐÃ ĐƯỢC KÍCH HOẠT
+        if self.bgTask == .invalid {
+            self.bgTask = application.beginBackgroundTask(withName: "CapacitorNativeUploadTask") {
+                application.endBackgroundTask(self.bgTask)
+                self.bgTask = .invalid
+            }
+        }
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+        // Tắt task ngầm khi quay lại màn hình chính
+        if self.bgTask != .invalid {
+            application.endBackgroundTask(self.bgTask)
+            self.bgTask = .invalid
+        }
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
