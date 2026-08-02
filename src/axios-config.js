@@ -48,21 +48,29 @@ if (typeof window !== 'undefined') {
 
   try {
     CapApp.addListener('appStateChange', async ({ isActive }) => {
-      if (isActive && activeRequests > 0) {
-        acquireWakeLock();
-      } else if (!isActive && activeRequests > 0) {
-        // KÍCH HOẠT NATIVE IOS BACKGROUND TASK CHÍNH THỨC TỪ APPLE
-        try {
-          const taskId = await BackgroundTask.beforeExit(async () => {
-            console.log('📱 Official iOS Native Background Task engaged');
-            while (activeRequests > 0) {
-              await new Promise((r) => setTimeout(r, 500));
-            }
-            BackgroundTask.finish({ taskId });
-            console.log('📱 Official iOS Native Background Task completed');
-          });
-        } catch (err) {
-          console.log('Background task error:', err);
+      if (!isActive) {
+        // Khi vuốt về Home hoặc chuyển App khác trên iOS
+        if (activeRequests > 0) {
+          try {
+            const taskId = await BackgroundTask.beforeExit(async () => {
+              console.log('📱 Official iOS Native Background Task engaged');
+              let checkCount = 0;
+              // Giữ luồng CPU & Mạng Native của iOS chạy liên tục cho đến khi xong request (tối đa 60s)
+              while (activeRequests > 0 && checkCount < 120) {
+                await new Promise((r) => setTimeout(r, 500));
+                checkCount++;
+              }
+              BackgroundTask.finish({ taskId });
+              console.log('📱 Official iOS Native Background Task completed');
+            });
+          } catch (err) {
+            console.log('Background task error:', err);
+          }
+        }
+      } else {
+        // Khi quay lại màn hình chính của App
+        if (activeRequests > 0) {
+          acquireWakeLock();
         }
       }
     });

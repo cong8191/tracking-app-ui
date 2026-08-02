@@ -217,17 +217,6 @@ export default function App() {
   useEffect(() => { readCookieDat(); }, []);
   useEffect(() => { fetchGameData(selectedDate.format("YYYY/MM/DD")); }, [selectedDate]);
 
-  // Tự động kéo lại dữ liệu mới nhất (GET) khi mở lại App từ màn hình Home
-  useEffect(() => {
-    const handleAppResume = () => {
-      if (document.visibilityState === 'visible') {
-        fetchGameData(selectedDate.format("YYYY/MM/DD"));
-      }
-    };
-    document.addEventListener('visibilitychange', handleAppResume);
-    return () => document.removeEventListener('visibilitychange', handleAppResume);
-  }, [selectedDate]);
-
   const handleDeleteEvent = async () => {
     try {
       await axios.post("/deleteEvent", {
@@ -453,16 +442,18 @@ export default function App() {
         }} disabled={isLogin}>Script Get Token</Button>
 
         <Button type="primary" danger onClick={async () => {
-          window.alert("BẮT ĐẦU TEST! Bấm OK rồi vuốt về Home NGAY BÂY GIỜ (trong vòng 5s)...");
-          await new Promise(r => setTimeout(r, 5000));
+          window.alert("BẮT ĐẦU TEST! Bấm OK ➔ Request gửi NGAY ➔ Hãy vuốt về Home lập tức!");
+          const startTime = Date.now();
           try {
+            // Gửi request NGAY LẬP TỨC (để activeRequests = 1 kích hoạt Native Background Task)
             await axios.get('/listGame');
-            window.alert("✅ Đã đẩy Request thành công trong lúc ở nền!");
+            const duration = Math.round((Date.now() - startTime) / 1000);
+            window.alert(`✅ Thành công! Request đã chạy xong ngầm sau ${duration} giây!`);
           } catch (e) {
             window.alert("❌ Lỗi truyền dữ liệu ngầm!");
           }
         }}>
-          Test Chạy Nền (5s)
+          Test Chạy Nền Thật
         </Button>
       </div>
 

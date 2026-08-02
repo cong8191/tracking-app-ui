@@ -282,6 +282,46 @@ export default function MultiFileUploader() {
     setUploading(false);
   };
 
+  // Tự động khôi phục hàng chờ Upload dở dang khi mở lại App / Tab (Tương thích cả Web & iOS Native App)
+  useEffect(() => {
+    let capListener = null;
+
+    const checkAndResume = () => {
+      if (!uploading && failedFiles.length > 0) {
+        message.info('Tự động tiếp tục upload các file dở dang...');
+        uploadFiles(true);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkAndResume();
+      }
+    };
+
+    const initCapacitor = async () => {
+      try {
+        if (CapApp && typeof CapApp.addListener === 'function') {
+          capListener = await CapApp.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+              checkAndResume();
+            }
+          });
+        }
+      } catch (e) {}
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    initCapacitor();
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (capListener && typeof capListener.remove === 'function') {
+        capListener.remove();
+      }
+    };
+  }, [failedFiles, uploading]);
+
   const uploadChunkWithRetry = async (formData, maxRetries = 5) => {
     for (let i = 0; i < maxRetries; i++) {
       const controller = new AbortController();

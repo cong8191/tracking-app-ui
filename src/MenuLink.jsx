@@ -1,88 +1,103 @@
-import { Menu } from 'antd';
+import React from 'react';
+import { Tabs } from 'antd';
 import { 
   PlusCircleOutlined, 
   UnorderedListOutlined, 
   HomeOutlined, 
-  SettingOutlined, 
   CheckCircleOutlined,
   UploadOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom'; // Nếu dùng React Router DOM
-// Nếu không dùng React Router, bạn có thể dùng window.location.href
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function MenuLink({ activeKey }) {
-  const navigate = useNavigate(); // Hook để chuyển trang
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Định nghĩa các mục trong menu
+  const keyToPath = {
+    'home': '/',
+    'upload': '/upload',
+    'create-gallery': '/createNew',
+    'search': '/search',
+    'check': '/check',
+  };
+
+  const pathToKey = {
+    '/': 'home',
+    '/upload': 'upload',
+    '/createNew': 'create-gallery',
+    '/search': 'search',
+    '/check': 'check',
+  };
+
+  const currentKey = activeKey || pathToKey[location.pathname] || 'home';
+
   const items = [
     {
-      label: '',
       key: 'home',
-      icon: <HomeOutlined />,
+      label: 'Home',
+      icon: <HomeOutlined style={{ fontSize: 18 }} />,
     },
     {
-      label: '',
       key: 'upload',
-      icon: <UploadOutlined />,
+      label: 'Upload',
+      icon: <UploadOutlined style={{ fontSize: 18 }} />,
     },
     {
-      label: '',
       key: 'create-gallery',
-      icon: <PlusCircleOutlined />,
+      label: 'Tạo mới',
+      icon: <PlusCircleOutlined style={{ fontSize: 18 }} />,
     },
     {
-      label: '',
       key: 'search',
-      icon: <UnorderedListOutlined />,
+      label: 'Tìm kiếm',
+      icon: <UnorderedListOutlined style={{ fontSize: 18 }} />,
     },
     {
-      label: '',
       key: 'check',
-      icon: <CheckCircleOutlined />,
+      label: 'Kiểm tra',
+      icon: <CheckCircleOutlined style={{ fontSize: 18 }} />,
     },
   ];
 
-  const handleMenuClick = (e) => {
-    // Xử lý chuyển trang dựa vào key
-    switch (e.key) {
-      case 'home':
-        //navigate('/'); 
-        window.open('/', '_blank');
-        break;
-      case 'upload':
-        // navigate('/createNew');
-        window.open('/upload', '_blank');
-        break;
-      case 'create-gallery':
-        // navigate('/createNew');
-        window.open('/createNew', '_blank');
-        break;
-      case 'search':
-        // navigate('/search');
-        window.open('/search', '_blank');
-        break;
-      case 'check':
-        // navigate('/check');
-        window.open('/check', '_blank');
-        break;
-      default:
-        console.log('Click on:', e.key);
-    }
+  const handleTabChange = (key) => {
+    const targetPath = keyToPath[key] || '/';
+    navigate(targetPath);
   };
 
   return (
-    <div style={{ marginBottom: 20, background: '#fff', width: '100%', maxWidth: '100vw', overflowX: 'auto', boxSizing: 'border-box' }}>
-      <Menu
-        onClick={handleMenuClick}
-        selectedKeys={[activeKey]} // Highlight item đang được chọn
-        mode="horizontal" // Menu ngang
-        items={items}
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'center', // Căn giữa menu
-          borderBottom: '1px solid #f0f0f0',
-          maxWidth: '100%'
-        }}
+    <div style={{ 
+      marginBottom: 16, 
+      background: '#fff', 
+      width: '100%', 
+      maxWidth: '100vw', 
+      boxSizing: 'border-box',
+      borderBottom: '1px solid #f0f0f0',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000
+    }}>
+      <Tabs
+        activeKey={currentKey}
+        onChange={handleTabChange}
+        centered
+        items={items.map(item => ({
+          key: item.key,
+          label: (
+            <span style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: 4, 
+              padding: '4px 2px',
+              fontSize: '13px',
+              fontWeight: 500
+            }}>
+              {item.icon}
+              <span className="tab-label-text">{item.label}</span>
+            </span>
+          )
+        }))}
+        tabBarStyle={{ margin: 0, borderBottom: 'none' }}
       />
     </div>
   );
