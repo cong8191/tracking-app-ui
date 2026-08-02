@@ -367,7 +367,7 @@ export default function MultiFileUploader() {
     }
 
     let completed = 0;
-    const CHUNK_CONCURRENCY = 3; 
+    const CHUNK_CONCURRENCY = 8; 
     const queue = [...chunksFormData];
 
     // Dùng Concurrency Worker Pool khởi tạo luồng song song liên tục
