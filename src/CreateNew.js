@@ -87,7 +87,7 @@ export default function CreateNew() {
   };
 
   return (
-    <div style={{ padding: 16, maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+    <div style={{ padding: 16, maxWidth: 1400, margin: '0 auto', width: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <MenuLink activeKey="create-gallery" />
       {/* Sử dụng Row và gutter để tạo khoảng cách giữa các phần tử */}
       <Row gutter={[16, 16]} style={{ marginLeft: 0, marginRight: 0 }}> 

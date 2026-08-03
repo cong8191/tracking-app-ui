@@ -532,7 +532,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4 space-y-4" style={{ maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+    <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4 space-y-4" style={{ maxWidth: 1400, margin: '0 auto', width: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
 
       <MenuLink activeKey="home" />
 

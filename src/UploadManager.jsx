@@ -87,7 +87,18 @@ const SortableItem = ({ fileObj, index, onNameChange, onDelete, onAddMore, progr
             key="paste-action"
             type="text"
             icon={<SnippetsOutlined style={{ fontSize: '18px', color: '#722ed1' }} />}
-            onClick={() => onPasteAtCursor(index, inputRef.current)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onPasteAtCursor(index, inputRef.current);
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              onPasteAtCursor(index, inputRef.current);
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              onPasteAtCursor(index, inputRef.current);
+            }}
             size="small"
             title="Dán vào vị trí con trỏ"
           />,
@@ -202,17 +213,21 @@ export default function MultiFileUploader() {
     try {
       const text = await navigator.clipboard.readText();
       if (!text) return;
-      const input = inputRefComponent.input;
+      const input = inputRefComponent?.input || inputRefComponent;
+      const content = fileList[index]?.customName || "";
+      if (!input || input.selectionStart === undefined || input.selectionStart === null) {
+        handleNameChange(index, content + text);
+        return;
+      }
       const start = input.selectionStart;
-      const end = input.selectionEnd;
-      const content = fileList[index].customName || "";
+      const end = input.selectionEnd !== undefined ? input.selectionEnd : start;
       const newText = content.substring(0, start) + text + content.substring(end);
       handleNameChange(index, newText);
       setTimeout(() => {
-        input.focus();
-        input.setSelectionRange(start + text.length, start + text.length);
-      }, 0);
-    } catch (err) { message.error("Lỗi Clipboard."); }
+        if (input.focus) input.focus();
+        if (input.setSelectionRange) input.setSelectionRange(start + text.length, start + text.length);
+      }, 50);
+    } catch (err) { message.error("Vui lòng cho phép quyền Clipboard."); }
   };
 
   const handleAddFiles = (filesInput) => {
@@ -284,11 +299,17 @@ export default function MultiFileUploader() {
     fetchEvents();
   }, [fetchEvents]);
 
-  const clearAll = () => {
+  const resetAllData = () => {
+    setEventId('');
+    setEventName('');
+    setURLEdit(undefined);
+    setURL(undefined);
     setFileList([]);
     setProgressMap({});
     setFailedFiles([]);
     setUploading(false);
+    if (typeof window !== 'undefined') window.isUploadingActive = false;
+    message.info('Đã xóa tất cả, reset về trạng thái ban đầu!');
   };
 
   // Tự động khôi phục hàng chờ Upload dở dang khi mở lại App / Tab (Tương thích cả Web & iOS Native App)
@@ -407,7 +428,7 @@ export default function MultiFileUploader() {
 
     try {
       const infoRes = await axios.post(`/getInfo`, { event_id: eventId });
-      const baseCount = infoRes.data.result.gallery.length;
+      const baseCount = infoRes.data.result?.gallery?.length || 0;
       
       const FILE_CONCURRENCY = 2; 
       const fileQueue = [...targets];
@@ -428,11 +449,13 @@ export default function MultiFileUploader() {
       });
 
       await Promise.all(fileWorkers);
-    } catch (err) { message.error("Lỗi server."); }
-    
-    setUploading(false);
-    if (typeof window !== 'undefined') window.isUploadingActive = false;
-    if (failedFiles.length === 0) message.success('Hoàn tất!');
+      if (failedFiles.length === 0) message.success('Hoàn tất upload!');
+    } catch (err) { 
+      message.error("Lỗi server hoặc gián đoạn mạng."); 
+    } finally {
+      setUploading(false);
+      if (typeof window !== 'undefined') window.isUploadingActive = false;
+    }
   };
 
   const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current++; if (e.dataTransfer.items?.length > 0) setIsDraggingFile(true); };
@@ -489,14 +512,14 @@ export default function MultiFileUploader() {
               <Card size="small" bordered={false} style={{ background: '#fafafa' }}>
                 <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
                   <AutoComplete options={eventOptions} value={eventId} style={{ flex: 1 }} placeholder="Nhập hoặc chọn Event ID"
-                    allowClear
                     onChange={(val, opt) => { setEventId(opt?.event_id || val); setURLEdit(opt?.event_id ? `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${opt.event_id}` : undefined); setURL(opt?.post_slug ? `https://my.liquidandgrit.com/library/gallery/${opt.post_slug}` : undefined); setEventName(opt?.name); }}
                     filterOption={(input, opt) => (opt?.label?.toLowerCase().includes(input.toLowerCase()))}
                   />
+                  <Button danger icon={<DeleteOutlined />} onClick={resetAllData} title="Reset Xoá Tất Cả (Về chưa nhập gì)" />
                   <Button icon={<ReloadOutlined />} onClick={() => fetchEvents(true)} loading={loadingEvents} title="Tải lại danh sách Event" />
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <Button danger onClick={clearAll} disabled={fileList.length === 0} size="small">Clear All</Button>
+                  <Button danger onClick={resetAllData} size="small">Clear All</Button>
                   {urlEdit && <a href={urlEdit} target="_blank" rel="noopener noreferrer">Edit Gallery</a>}
                   {url && <a href={url} target="_blank" rel="noopener noreferrer">Xem Gallery</a>}
                   {eventId && <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: eventId }); }} /> }

@@ -16,18 +16,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // KÍCH HOẠT NGAY LẬP TỨC TỪ MILLISECOND ĐẦU TIÊN KHI NGÓN TAY VỪA CHẠM VUỐT VỀ HOME
         if self.bgTask == .invalid {
             self.bgTask = application.beginBackgroundTask(withName: "CapacitorNativeUploadTask") {
-                application.endBackgroundTask(self.bgTask)
-                self.bgTask = .invalid
+                if self.bgTask != .invalid {
+                    application.endBackgroundTask(self.bgTask)
+                    self.bgTask = .invalid
+                }
             }
         }
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // ĐẢM BẢO CHẮC CHẮN NATIVE TASK ĐÃ ĐƯỢC KÍCH HOẠT
+        // ĐẢM BẢO CHẮC CHẮN NATIVE TASK ĐÃ ĐƯỢC KÍCH HOẠT VỚI THỜI GIAN DỰ PHÒNG TỐI ĐA
         if self.bgTask == .invalid {
             self.bgTask = application.beginBackgroundTask(withName: "CapacitorNativeUploadTask") {
-                application.endBackgroundTask(self.bgTask)
-                self.bgTask = .invalid
+                if self.bgTask != .invalid {
+                    application.endBackgroundTask(self.bgTask)
+                    self.bgTask = .invalid
+                }
             }
         }
     }

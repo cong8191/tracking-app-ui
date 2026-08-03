@@ -142,7 +142,7 @@ export default function SearchableTable({gameId, returnParent}) {
   ];
 
   return (
-    <div style={{ padding: 16, maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+    <div style={{ padding: 16, maxWidth: 1400, margin: '0 auto', width: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <MenuLink activeKey="search" />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         {!gameId && (

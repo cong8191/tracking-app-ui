@@ -147,7 +147,7 @@ const ViewImage = ({ event_id: propEventId }) => {
   }, [filteredData]);
 
   return (
-    <div style={{ padding: "10px", background: "#f5f5f5", minHeight: "100vh" }}>
+    <div style={{ padding: "8px 4px", background: "#f5f5f5", minHeight: "100vh", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
       
       {/* Sticky Header Tối ưu cho Mobile */}
       <div style={stickyHeaderWrapper}>

@@ -23,7 +23,7 @@ function KeepAliveMainLayout() {
   const currentTab = pathToKey[location.pathname] || 'home';
 
   return (
-    <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '0 12px', boxSizing: 'border-box', overflowX: 'hidden' }}>
       {/* 1. Home Tab */}
       <div style={{ display: currentTab === 'home' ? 'block' : 'none' }}>
         <MainPage />

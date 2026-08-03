@@ -24,6 +24,7 @@ import {
 import axios from './axios-config';
 import TextArea from 'antd/es/input/TextArea';
 import MenuLink from './MenuLink';
+import ViewImage from './ViewImage';
 import dayjs from 'dayjs';
 
 export default function CheckItem() {
@@ -31,6 +32,7 @@ export default function CheckItem() {
   const [game, setGame] = useState();
   const [eventOptions, setEventOptions] = useState([]);
   const textAreaRef = useRef(null);
+  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [events, setEvents] = useState([]);
 
@@ -224,7 +226,7 @@ export default function CheckItem() {
   }
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: 16, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: 16, width: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <MenuLink activeKey="check" />
       <div style={{ marginBottom: '10px' }}>
         <Select
@@ -306,7 +308,22 @@ export default function CheckItem() {
         >
           Run Check
         </Button>
-        <Button danger onClick={handleBtnPaste} disabled={loading}>
+        <Button
+          danger
+          onMouseDown={(e) => {
+            e.preventDefault();
+            handleBtnPaste();
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            handleBtnPaste();
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            handleBtnPaste();
+          }}
+          disabled={loading}
+        >
           Dán Nội Dung
         </Button>
         {loading && <LoadingOutlined />}
@@ -376,8 +393,18 @@ export default function CheckItem() {
 
             {/* Cụm Icon cho từng hàng */}
             <div style={{ display: 'flex', gap: '4px' }}>
-              {sub.viewImage && (
-                <Button type="text" size="small" icon={<ExpandOutlined />} onClick={() => window.open(sub.viewImage, '_blank')} />
+              {(sub.viewImage || sub.galleryId) && (
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ExpandOutlined />}
+                  onClick={() => {
+                    const gId = sub.galleryId || (sub.viewImage ? String(sub.viewImage).replace('vewImage/', '') : null);
+                    if (gId) {
+                      setViewImageModal({ open: true, galleryId: gId });
+                    }
+                  }}
+                />
               )}
               {sub.url && (
                 <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => window.open(sub.url, '_blank')} />
@@ -425,6 +452,18 @@ export default function CheckItem() {
         <div style={{ height: '70vh', overflow: 'auto', borderTop: '1px solid #f0f0f0' }}>
           {isPopupLoading ? <div style={{ textAlign: "center", padding: "20px" }}><Spin size="large" /></div> : <div ref={tableContainerRef} dangerouslySetInnerHTML={{ __html: popupData || "<p>Không có dữ liệu</p>" }} />}
         </div>
+      </Modal>
+
+      {/* MODAL XEM ẢNH / GALLERY POPUP CHUẨN MOBILE */}
+      <Modal
+        open={viewImageModal.open}
+        onCancel={() => setViewImageModal({ open: false, galleryId: null })}
+        width="95vw"
+        style={{ maxWidth: '95vw', top: 10 }}
+        footer={null}
+        destroyOnClose
+      >
+        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
       </Modal>
     </div>
   );
