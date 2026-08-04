@@ -89,7 +89,6 @@ const SortableItem = ({ fileObj, index, onNameChange, onDelete, onAddMore, progr
             icon={<SnippetsOutlined style={{ fontSize: '18px', color: '#722ed1' }} />}
             onMouseDown={(e) => {
               e.preventDefault();
-              onPasteAtCursor(index, inputRef.current);
             }}
             onTouchStart={(e) => {
               e.preventDefault();
@@ -209,7 +208,15 @@ export default function MultiFileUploader() {
     };
   }, [slides]);
 
+  const lastPasteTimeRef = useRef(0);
+
   const handlePasteAtCursor = async (index, inputRefComponent) => {
+    const now = Date.now();
+    if (now - lastPasteTimeRef.current < 400) {
+      return;
+    }
+    lastPasteTimeRef.current = now;
+
     try {
       const text = await navigator.clipboard.readText();
       if (!text) return;
