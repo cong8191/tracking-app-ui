@@ -56,11 +56,13 @@ if (typeof window !== 'undefined') {
             const taskId = await BackgroundTask.beforeExit(async () => {
               console.log('📱 Official iOS Native Background Task engaged');
               let checkCount = 0;
-              // Giữ luồng CPU & Mạng Native của iOS chạy liên tục cho tới khi toàn bộ file/chunk upload xong (tối đa 150s)
-              while ((activeRequests > 0 || (typeof window !== 'undefined' && window.isUploadingActive)) && checkCount < 300) {
+              // Giữ luồng CPU & Mạng Native của iOS chạy liên tục liên tục để upload TẤT CẢ các file/chunk tiếp theo trong queue (tối đa 300s = 5 phút)
+              while ((activeRequests > 0 || (typeof window !== 'undefined' && window.isUploadingActive)) && checkCount < 600) {
                 await new Promise((r) => setTimeout(r, 500));
                 checkCount++;
               }
+              // Thêm 2s grace period để chắc chắn không bị cắt ngang giữa các file
+              await new Promise((r) => setTimeout(r, 2000));
               BackgroundTask.finish({ taskId });
               console.log('📱 Official iOS Native Background Task completed');
             });
@@ -114,16 +116,15 @@ instance.interceptors.response.use(
     }
 
     const config = error.config;
-    // CHỈ auto-retry cho GET requests hoặc Upload Chunk có flowIdentifier (an toàn không bị trùng lặp dữ liệu)
-    // KHÔNG tự động retry POST requests thông thường để tránh bị nhân đôi dữ liệu trên Server
+    // CHỈ auto-retry cho GET requests (an toàn không bị trùng lặp dữ liệu)
+    // KHÔNG tự động retry POST upload trong interceptor toàn cục vì UploadManager đã quản lý retry
     const isGet = config?.method?.toLowerCase() === 'get';
-    const isChunkUpload = config?.url?.includes('/upload') && config?.data instanceof FormData;
 
-    if (config && (isGet || isChunkUpload) && (!error.response || error.response.status >= 500)) {
+    if (config && isGet && (!error.response || error.response.status >= 500)) {
       config._retryCount = config._retryCount || 0;
       if (config._retryCount < 3) {
         config._retryCount += 1;
-        console.log(`🔄 iOS Interceptor Retry attempt #${config._retryCount} for: ${config.url}`);
+        console.log(`🔄 Axios Interceptor Retry attempt #${config._retryCount} for: ${config.url}`);
         await new Promise((r) => setTimeout(r, 2000 * config._retryCount));
         return instance(config);
       }

@@ -159,6 +159,7 @@ export default function MultiFileUploader() {
   const [eventId, setEventId] = useState('');
   const [progressMap, setProgressMap] = useState({});
   const [uploading, setUploading] = useState(false);
+  const uploadingRef = useRef(false);
   const [failedFiles, setFailedFiles] = useState([]); 
   const [url, setURL] = useState(undefined);
   const [urlEdit, setURLEdit] = useState(undefined);
@@ -237,27 +238,49 @@ export default function MultiFileUploader() {
     } catch (err) { message.error("Vui lòng cho phép quyền Clipboard."); }
   };
 
-  const handleAddFiles = (filesInput) => {
-    const filesArray = filesInput instanceof File ? [filesInput] : Array.from(filesInput instanceof FileList ? filesInput : filesInput);
-    const formatted = filesArray.map((f) => {
-      const uniqueId = Math.random().toString(36).substr(2, 5);
-      return {
-        id: f.uid || `${Date.now()}-${uniqueId}`,
-        identifier: `${f.size}-${f.name.replace(/[^a-zA-Z0-9]/g, '')}-${f.lastModified}-${uniqueId}`,
-        name: f.name,
-        size: f.size,
-        file: f,
-        customName: cleanFilename(f.name),
-      }
-    });
+  const handleAddFiles = useCallback((filesInput) => {
+    const filesArray = filesInput instanceof File
+      ? [filesInput]
+      : Array.from(filesInput instanceof FileList ? filesInput : filesInput);
 
-    setFileList((prev) => [...prev, ...formatted]);
-    setProgressMap((prev) => {
-      const newMap = { ...prev };
-      formatted.forEach(f => { if (!newMap[f.id]) newMap[f.id] = 0; });
-      return newMap;
+    if (!filesArray || filesArray.length === 0) return;
+
+    setFileList((prev) => {
+      const existingKeys = new Set(
+        prev.map((item) => `${item.name}_${item.size}_${item.file?.lastModified || 0}`)
+      );
+
+      const newFormatted = [];
+
+      filesArray.forEach((f) => {
+        const key = `${f.name}_${f.size}_${f.lastModified || 0}`;
+        if (!existingKeys.has(key)) {
+          existingKeys.add(key);
+          const uniqueId = Math.random().toString(36).substr(2, 5);
+          newFormatted.push({
+            id: f.uid || `${Date.now()}-${uniqueId}`,
+            identifier: `${f.size}-${f.name.replace(/[^a-zA-Z0-9]/g, '')}-${f.lastModified}-${uniqueId}`,
+            name: f.name,
+            size: f.size,
+            file: f,
+            customName: cleanFilename(f.name),
+          });
+        }
+      });
+
+      if (newFormatted.length === 0) return prev;
+
+      setProgressMap((prevProgress) => {
+        const newMap = { ...prevProgress };
+        newFormatted.forEach((f) => {
+          if (!newMap[f.id]) newMap[f.id] = 0;
+        });
+        return newMap;
+      });
+
+      return [...prev, ...newFormatted];
     });
-  };
+  }, []);
 
   const handleNameChange = (index, newName) => {
     setFileList((prev) => {
@@ -314,6 +337,7 @@ export default function MultiFileUploader() {
     setFileList([]);
     setProgressMap({});
     setFailedFiles([]);
+    uploadingRef.current = false;
     setUploading(false);
     if (typeof window !== 'undefined') window.isUploadingActive = false;
     message.info('Đã xóa tất cả, reset về trạng thái ban đầu!');
@@ -324,7 +348,7 @@ export default function MultiFileUploader() {
     let capListener = null;
 
     const checkAndResume = () => {
-      if (!uploading && failedFiles.length > 0) {
+      if (!uploadingRef.current && failedFiles.length > 0) {
         message.info('Tự động tiếp tục upload các file dở dang...');
         uploadFiles(true);
       }
@@ -357,7 +381,7 @@ export default function MultiFileUploader() {
         capListener.remove();
       }
     };
-  }, [failedFiles, uploading]);
+  }, [failedFiles]);
 
   const uploadChunkWithRetry = async (formData, maxRetries = 5) => {
     for (let i = 0; i < maxRetries; i++) {
@@ -380,13 +404,12 @@ export default function MultiFileUploader() {
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     const safeFilename = customName.trim() === '' ? file.name : customName;
 
-    const chunksFormData = [];
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE;
+    const prepareFormData = (chunkIndex, isLast) => {
+      const start = chunkIndex * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, file.size);
       const chunk = file.slice(start, end);
       const formData = new FormData();
-      formData.append('flowChunkNumber', i + 1);
+      formData.append('flowChunkNumber', chunkIndex + 1);
       formData.append('flowChunkSize', CHUNK_SIZE);
       formData.append('flowCurrentChunkSize', chunk.size);
       formData.append('flowTotalSize', file.size);
@@ -399,16 +422,28 @@ export default function MultiFileUploader() {
       formData.append('order_index', orderIndex);
       formData.append('file', chunk);
       formData.append('customFilename', safeFilename);
-      if (i === totalChunks - 1) formData.append('isLastChunk', 'true');
-      chunksFormData.push(formData);
-    }
+      if (isLast) formData.append('isLastChunk', 'true');
+      return formData;
+    };
 
     let completed = 0;
-    const CHUNK_CONCURRENCY = 8; 
-    const queue = [...chunksFormData];
 
-    // Dùng Concurrency Worker Pool khởi tạo luồng song song liên tục
-    // Giúp các request HTTP được nối tiếp trên tầng mạng Native iOS mà không bị đóng băng JS event loop khi ra Home
+    if (totalChunks === 1) {
+      const formData = prepareFormData(0, true);
+      await uploadChunkWithRetry(formData);
+      setProgressMap(prev => ({ ...prev, [id]: 100 }));
+      return;
+    }
+
+    // BƯỚC 1: Tải lên tất cả các chunk đầu (0 -> totalChunks - 2) song song
+    const initialChunks = [];
+    for (let i = 0; i < totalChunks - 1; i++) {
+      initialChunks.push(prepareFormData(i, false));
+    }
+
+    const CHUNK_CONCURRENCY = 6; 
+    const queue = [...initialChunks];
+
     const workers = Array(CHUNK_CONCURRENCY).fill(null).map(async () => {
       while (queue.length > 0) {
         const formData = queue.shift();
@@ -420,18 +455,31 @@ export default function MultiFileUploader() {
     });
 
     await Promise.all(workers);
+
+    // BƯỚC 2: Đảm bảo TẤT CẢ các chunk trước đã hoàn tất 100%, mới gửi Chunk CUỐI CÙNG có flag isLastChunk = 'true'
+    const lastChunkFormData = prepareFormData(totalChunks - 1, true);
+    await uploadChunkWithRetry(lastChunkFormData);
+
+    completed++;
     setProgressMap(prev => ({ ...prev, [id]: 100 }));
   };
 
   const uploadFiles = async (retryOnly = false) => {
-    if (uploading) return;
+    if (uploadingRef.current) return;
     if (!eventId) { message.warning('Vui lòng chọn Event ID.'); return; }
     
     const targets = retryOnly ? fileList.filter(f => failedFiles.includes(f.id)) : fileList;
     if (targets.length === 0) return;
 
+    uploadingRef.current = true;
     setUploading(true);
     if (typeof window !== 'undefined') window.isUploadingActive = true;
+
+    if (!retryOnly) {
+      setFailedFiles([]);
+    }
+
+    let currentFailed = [];
 
     try {
       const infoRes = await axios.post(`/getInfo`, { event_id: eventId });
@@ -450,16 +498,27 @@ export default function MultiFileUploader() {
             await processSingleFile(f, baseCount + 1 + globalIdx);
             setFailedFiles(prev => prev.filter(fid => fid !== f.id));
           } catch (err) {
+            currentFailed.push(f.id);
             setFailedFiles(prev => [...new Set([...prev, f.id])]);
           }
         }
       });
 
       await Promise.all(fileWorkers);
-      if (failedFiles.length === 0) message.success('Hoàn tất upload!');
+      
+      if (currentFailed.length === 0) {
+        message.success('Hoàn tất upload!');
+        setFileList([]);
+        setProgressMap({});
+        setFailedFiles([]);
+      } else {
+        message.error(`Upload hoàn tất với ${currentFailed.length} file bị lỗi.`);
+        setFileList(prev => prev.filter(f => currentFailed.includes(f.id)));
+      }
     } catch (err) { 
       message.error("Lỗi server hoặc gián đoạn mạng."); 
     } finally {
+      uploadingRef.current = false;
       setUploading(false);
       if (typeof window !== 'undefined') window.isUploadingActive = false;
     }
