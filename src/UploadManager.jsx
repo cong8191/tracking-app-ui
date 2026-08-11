@@ -508,9 +508,7 @@ export default function MultiFileUploader() {
       
       if (currentFailed.length === 0) {
         message.success('Hoàn tất upload!');
-        setFileList([]);
-        setProgressMap({});
-        setFailedFiles([]);
+        // Giữ lại danh sách file đã upload để người dùng xem lại (không tự động xóa)
       } else {
         message.error(`Upload hoàn tất với ${currentFailed.length} file bị lỗi.`);
         setFileList(prev => prev.filter(f => currentFailed.includes(f.id)));
