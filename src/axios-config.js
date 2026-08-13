@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { BackgroundTask } from '@capawesome/capacitor-background-task';
 
@@ -51,7 +52,7 @@ if (typeof window !== 'undefined') {
       if (!isActive) {
         // Khi vuốt về Home hoặc chuyển App khác trên iOS
         const isUploading = typeof window !== 'undefined' && window.isUploadingActive;
-        if (activeRequests > 0 || isUploading) {
+        if (Capacitor.isNativePlatform() && (activeRequests > 0 || isUploading)) {
           try {
             const taskId = await BackgroundTask.beforeExit(async () => {
               console.log('📱 Official iOS Native Background Task engaged');
