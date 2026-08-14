@@ -708,24 +708,51 @@ export default function App() {
         visible={suggetEventModal.isModalVisible}
         gameId={suggetEventModal.gameId}
         selectedDate={suggetEventModal.selectedDate}
+        sectionEvents={suggetEventModal.sectionIndex !== null && sections[suggetEventModal.sectionIndex] ? sections[suggetEventModal.sectionIndex].events : []}
+        existingEvents={
+          suggetEventModal.sectionIndex !== null && sections[suggetEventModal.sectionIndex]
+            ? sections[suggetEventModal.sectionIndex]['event-details']
+            : []
+        }
         onCancel={() => setSuggetEventModal({isModalVisible: false, gameId: null, selectedDate: null})}
         onSave={(selectedObjects) => {
-
+          if (suggetEventModal.sectionIndex === null) return;
           const newSections = [...sections];
-          selectedObjects.forEach((obj, index) => {
-             newSections[suggetEventModal.sectionIndex]['event-details'].push({
-                from: obj.from,
-                to: obj.to,
-                event_id: obj.key,
-                status: '',
-                type: 'date',
+          const targetSection = newSections[suggetEventModal.sectionIndex];
+          if (!targetSection) return;
+
+          selectedObjects.forEach((obj) => {
+            const realId = obj.id || obj.event_id || obj.key;
+
+            // 1. Kiểm tra xem event này đã có trong danh sách options của Select chưa
+            let existingOption = (targetSection.events || []).find(
+              (e) => String(e.id) === String(realId) || (e.name && obj.name && e.name.trim().toLowerCase() === obj.name.trim().toLowerCase())
+            );
+
+            let finalEventId = existingOption ? existingOption.id : realId;
+
+            // 2. Nếu chưa có option này trong Select, tự động bổ sung vào danh sách events của section
+            if (!existingOption) {
+              if (!targetSection.events) targetSection.events = [];
+              targetSection.events.push({
+                id: finalEventId,
+                name: obj.name || `Sự kiện ${finalEventId}`,
+                g_name: obj.g_name || '',
+                default_day: obj.totalday || 1,
               });
+            }
+
+            // 3. Thêm dòng mới vào event-details
+            targetSection['event-details'].push({
+              from: obj.from,
+              to: obj.to,
+              event_id: finalEventId,
+              status: '',
+              type: 'date',
+            });
           });
 
-          
-   
           setSections(newSections);
-
         }}
       />
 
