@@ -320,22 +320,25 @@ const SelectionPopup = ({ visible, onCancel, onSave, gameId, selectedDate, exist
     },
   ];
 
-  // Lọc tìm kiếm (Không làm mất trạng thái đã check)
+  // Lọc tìm kiếm (Ẩn hoàn toàn các Panel/Grid không có sự kiện khớp để tiết kiệm diện tích)
   const filteredGroups = useMemo(() => {
-    if (!searchText.trim()) return groupsData;
+    const validGroups = groupsData.filter((g) => (g.events || []).length > 0);
+    if (!searchText.trim()) return validGroups;
 
     const lowerSearch = searchText.toLowerCase();
-    return groupsData.map((group) => {
-      const filteredEvents = group.events.filter(
-        (evt) =>
-          evt.name.toLowerCase().includes(lowerSearch) ||
-          (evt.g_name && evt.g_name.toLowerCase().includes(lowerSearch))
-      );
-      return {
-        ...group,
-        events: filteredEvents,
-      };
-    });
+    return validGroups
+      .map((group) => {
+        const filteredEvents = (group.events || []).filter(
+          (evt) =>
+            (evt.name && evt.name.toLowerCase().includes(lowerSearch)) ||
+            (evt.g_name && evt.g_name.toLowerCase().includes(lowerSearch))
+        );
+        return {
+          ...group,
+          events: filteredEvents,
+        };
+      })
+      .filter((group) => group.events.length > 0);
   }, [groupsData, searchText]);
 
   // Xử lý khi click vào từng Checkbox sự kiện: Đồng bộ tất cả các group có CÙNG TÊN SỰ KIỆN

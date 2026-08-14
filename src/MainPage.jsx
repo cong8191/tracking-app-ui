@@ -742,10 +742,20 @@ export default function App() {
               });
             }
 
+            // Lấy trực tiếp số ngày totalday
+            const totalDays = parseInt(obj.totalday || 1, 10);
+
+            // from lấy ngày hôm nay
+            const todayObj = dayjs();
+            const newFromStr = todayObj.format('YYYY/MM/DD');
+
+            // to = hôm nay + totalday
+            const newToStr = todayObj.add(totalDays, 'day').format('YYYY/MM/DD');
+
             // 3. Thêm dòng mới vào event-details
             targetSection['event-details'].push({
-              from: obj.from,
-              to: obj.to,
+              from: newFromStr,
+              to: newToStr,
               event_id: finalEventId,
               status: '',
               type: 'date',
