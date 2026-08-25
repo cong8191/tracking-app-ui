@@ -465,9 +465,9 @@ export default function App() {
                         {event.name} {event.g_name ? ` (${event.g_name})` : ''}
                       </div>
                       <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                        <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: event.gallery_id }); }} />
-                        {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
-                        <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
+                        <Button type="text" size="small" icon={<ExpandOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: event.gallery_id }); }} />
+                        {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
+                        <Button type="text" size="small" icon={<EyeOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
                         <Button
                           type="text" size="small" icon={<EditOutlined />}
                           onMouseDown={(e) => e.stopPropagation()}
@@ -657,9 +657,9 @@ export default function App() {
                       {event.name} {event.g_name ? ` (${event.g_name})` : ''}
                     </div>
                     <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                      <Button type="text" size="small" icon={<ExpandOutlined />} onClick={(e) => { e.stopPropagation(); window.open('vewImage/' + event.gallery_id, '_blank'); }} />
-                      {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
-                      <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
+                      <Button type="text" size="small" icon={<ExpandOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: event.gallery_id }); }} />
+                      {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
+                      <Button type="text" size="small" icon={<EyeOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
                     </div>
 
                   </div>
@@ -738,7 +738,7 @@ export default function App() {
                 id: finalEventId,
                 name: obj.name || `Sự kiện ${finalEventId}`,
                 g_name: obj.g_name || '',
-                default_day: obj.totalday || 1,
+                default_day: obj.totalday || '',
               });
             }
 
