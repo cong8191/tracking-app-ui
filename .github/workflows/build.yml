@@ -31,7 +31,7 @@ jobs:
           token: ${{ secrets.MY_DEPLOY_TOKEN }} 
           
           # Thay bằng: TênUser/TênRepoĐích
-          repository-name: cong8191/tracking_game
+          repository-name: cong8191/tracking-v2
           
           branch: main
           folder: build # Chỉ định folder chứa kết quả build
