@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css'; // Theme Snow phổ biến
+import MenuLink from './MenuLink';
 
 const MobileEditor = () => {
     const [value, setValue] = useState('');
@@ -128,20 +129,21 @@ const MobileEditor = () => {
 
     return (
         <div style={styles.container}>
-            <div style={styles.header}>
-                <h3>Edit</h3>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                <Button  onClick={getContent} loading={loading}>
-                    Get
-                </Button>
-                <Button type="primary" onClick={handleSave} loading={loading}>
-                    Lưu
-                </Button>
-                </div>
+            <MenuLink activeKey="updateContent" />
 
+            <div style={styles.header}>
+                <h3 style={{ margin: 0 }}>Edit</h3>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <Button onClick={getContent} loading={loading}>
+                        Get
+                    </Button>
+                    <Button type="primary" onClick={handleSave} loading={loading}>
+                        Lưu
+                    </Button>
+                </div>
             </div>
 
-            <Row gutter={[16, 16]} style={{ marginLeft: 0, marginRight: 0 }}>
+            <Row gutter={[16, 16]} style={{ marginLeft: 0, marginRight: 0, marginBottom: 16 }}>
 
                 {/* Game Select: Mobile chiếm hết (24), Desktop chiếm 1 phần (6) */}
                 {!gameId && (
@@ -172,7 +174,6 @@ const MobileEditor = () => {
                     />
                 </Col>
 
-
             </Row>
 
             <div style={styles.editorWrapper}>
@@ -191,23 +192,26 @@ const MobileEditor = () => {
 };
 
 
-// CSS Inline để tối ưu giao diện mobile
+// CSS Inline để tối ưu giao diện đồng bộ với các trang khác
 const styles = {
-
     container: {
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh', // Full màn hình điện thoại
-        maxWidth: '100vw',
+        padding: 16,
+        maxWidth: 1400,
+        margin: '0 auto',
+        width: '100%',
         overflowX: 'hidden',
         boxSizing: 'border-box',
         backgroundColor: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
     },
     header: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '10px 15px',
+        padding: '10px 0',
+        marginBottom: '12px',
         borderBottom: '1px solid #ddd',
     },
     saveBtn: {
@@ -220,14 +224,17 @@ const styles = {
     },
     editorWrapper: {
         flex: 1,
-        overflowY: 'auto', // Cho phép cuộn nếu nội dung dài
+        display: 'flex',
+        flexDirection: 'column',
         marginTop: '10px',
-        marginBottom: '10px'
+        marginBottom: '10px',
+        minHeight: '400px',
     },
     quill: {
-        height: 'calc(100% - 42px)', // Trừ đi chiều cao của toolbar Quill
+        flex: 1,
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        minHeight: '350px',
     }
 };
 

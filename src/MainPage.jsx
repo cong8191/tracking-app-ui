@@ -69,7 +69,7 @@ export default function App() {
     setSearchTerm(e.target.value);
     const keyword = (e.target || e).value.toLowerCase();
     if (tableContainerRef.current) {
-      const rows = tableContainerRef.current.querySelectorAll('table.table-cnd tbody tr');
+      const rows = tableContainerRef.current.querySelectorAll('table.db-data-table tbody tr');
       rows.forEach((row) => {
         const cells = row.querySelectorAll('td');
         const activityText = cells[2]?.innerText.toLowerCase() || '';
@@ -106,9 +106,9 @@ export default function App() {
     setIsPopupLoading(true);
     setPopupData(null);
     try {
-      const response = await axios.post(`/show-data`, { gameId: gameId, startDate: searchDate.format("YYYY-MM-DD") });
+      const response = await axios.post(`/show-data1`, { gameId: gameId, startDate: searchDate.format("YYYY-MM-DD") });
       const data = response.data;
-      let cleanHtml = removeColumnsFromHtml(data.content_html, ["Game", "Total Days"]);
+      let cleanHtml = removeColumnsFromHtml(data.content_html, ["App", "Total Days"]);
       setPopupData(cleanHtml);
       setIsPopupLoading(false);
       setSearchTerm('');
@@ -466,8 +466,7 @@ export default function App() {
                       </div>
                       <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
                         <Button type="text" size="small" icon={<ExpandOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: event.gallery_id }); }} />
-                        {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
-                        <Button type="text" size="small" icon={<EyeOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
+                        {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open(`https://ai.liquidandgrit.com/feature-database/${event.post_slug}`, '_blank'); }} />}
                         <Button
                           type="text" size="small" icon={<EditOutlined />}
                           onMouseDown={(e) => e.stopPropagation()}

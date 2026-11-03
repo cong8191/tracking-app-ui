@@ -187,6 +187,18 @@ code {
           height: 60px !important;
         }
 
+        .quill .ql-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 250px;
+        }
+
+        .quill .ql-editor {
+          flex: 1;
+          min-height: 250px;
+        }
+
 
 
         /* Phóng to vùng bấm của nút clear trên mobile */
@@ -208,3 +220,58 @@ code {
 .ant-select-suffix > * {
   pointer-events: auto; /* Nhưng vẫn cho phép click vào từng icon cụ thể */
 }
+
+
+.db-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px
+}
+
+.db-data-table th {
+    background: #639be5;
+    padding: 12px 18px;
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    white-space: nowrap
+}
+
+.db-data-table td,.db-data-table th {
+    border-bottom: 1px solid var(--border-subtle)
+}
+
+.db-data-table td {
+    padding: 14px 18px;
+    color: var(--text-primary);
+    vertical-align: middle
+}
+
+.db-data-table tbody tr {
+    cursor: pointer;
+    transition: background .15s ease
+}
+
+.db-data-table tbody tr:hover {
+    background: var(--tag-bg)
+}
+
+.db-data-table tbody tr:last-child td {
+    border-bottom: none
+}
+
+.lo-event-details-trigger {
+    border:0;
+    padding: 0;
+    background: transparent;
+    color: var(--accent-blue);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    /* text-decoration: underline */
+}
+
+.db-data-table THEAD TH {  text-align: center; position: sticky; top: 0;  z-index: 1; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }

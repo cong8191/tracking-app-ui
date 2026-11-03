@@ -14,10 +14,10 @@ function KeepAliveMainLayout() {
 
   const pathToKey = {
     '/': 'home',
-    '/upload': 'upload',
     '/createNew': 'create-gallery',
     '/search': 'search',
     '/check': 'check',
+    '/updateContent': 'updateContent',
   };
 
   const currentTab = pathToKey[location.pathname] || 'home';
@@ -30,9 +30,9 @@ function KeepAliveMainLayout() {
       </div>
 
       {/* 2. Upload Tab */}
-      <div style={{ display: currentTab === 'upload' ? 'block' : 'none' }}>
+      {/* <div style={{ display: currentTab === 'upload' ? 'block' : 'none' }}>
         <UploadManager />
-      </div>
+      </div> */}
 
       {/* 3. Create Gallery Tab */}
       <div style={{ display: currentTab === 'create-gallery' ? 'block' : 'none' }}>
@@ -48,6 +48,10 @@ function KeepAliveMainLayout() {
       <div style={{ display: currentTab === 'check' ? 'block' : 'none' }}>
         <CheckItem />
       </div>
+
+      <div style={{ display: currentTab === 'updateContent' ? 'block' : 'none' }}>
+        <MobileEditor />
+      </div>
     </div>
   );
 }
@@ -57,14 +61,14 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route path="/" element={<KeepAliveMainLayout />} />
-        <Route path="/upload" element={<KeepAliveMainLayout />} />
+        {/* <Route path="/upload" element={<KeepAliveMainLayout />} /> */}
         <Route path="/createNew" element={<KeepAliveMainLayout />} />
         <Route path="/search" element={<KeepAliveMainLayout />} />
         <Route path="/check" element={<KeepAliveMainLayout />} />
+        <Route path="/updateContent" element={<KeepAliveMainLayout />} />
         
         {/* Các trang riêng lẻ khác */}
         <Route path="/dbManager" element={<SQLiteFileUploader />} />
-        <Route path="/updateContent" element={<MobileEditor />} />
         <Route path="/viewImage/:event_id" element={<ViewImage />} />
       </Routes>
     </HashRouter>

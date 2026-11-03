@@ -5,7 +5,8 @@ import {
   UnorderedListOutlined, 
   HomeOutlined, 
   CheckCircleOutlined,
-  UploadOutlined
+  UploadOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -15,18 +16,18 @@ export default function MenuLink({ activeKey }) {
 
   const keyToPath = {
     'home': '/',
-    'upload': '/upload',
     'create-gallery': '/createNew',
     'search': '/search',
     'check': '/check',
+    'updateContent': '/updateContent',
   };
 
   const pathToKey = {
     '/': 'home',
-    '/upload': 'upload',
     '/createNew': 'create-gallery',
     '/search': 'search',
     '/check': 'check',
+    '/updateContent': 'updateContent',
   };
 
   const currentKey = activeKey || pathToKey[location.pathname] || 'home';
@@ -37,11 +38,11 @@ export default function MenuLink({ activeKey }) {
       label: 'Home',
       icon: <HomeOutlined style={{ fontSize: 18 }} />,
     },
-    {
-      key: 'upload',
-      label: 'Upload',
-      icon: <UploadOutlined style={{ fontSize: 18 }} />,
-    },
+    // {
+    //   key: 'upload',
+    //   label: 'Upload',
+    //   icon: <UploadOutlined style={{ fontSize: 18 }} />,
+    // },
     {
       key: 'create-gallery',
       label: 'Tạo mới',
@@ -56,6 +57,11 @@ export default function MenuLink({ activeKey }) {
       key: 'check',
       label: 'Kiểm tra',
       icon: <CheckCircleOutlined style={{ fontSize: 18 }} />,
+    },
+    {
+      key: 'updateContent',
+      label: 'Update',
+      icon: <EditOutlined style={{ fontSize: 18 }} />,
     },
   ];
 
