@@ -681,7 +681,7 @@ export default function App() {
           }),
 
           ]}><Input /></Form.Item>
-          <Form.Item label="Gallery ID" name="galleryId" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item label="Gallery ID" name="galleryId" ><Input /></Form.Item>
           <Form.Item label="Post Slug" name="post_slug"><Input /></Form.Item>
           <Form.Item label="Day" name="day"><Input /></Form.Item>
 
