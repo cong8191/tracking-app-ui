@@ -22,7 +22,6 @@ import axios from './axios-config';
 import dayjs from 'dayjs';
 import MenuLink from './MenuLink';
 import ViewImage from './ViewImage';
-import localOptionsData from './data/options.json';
 
 const FormLabel = ({ label }) => (
   <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 13, color: '#374151' }}>
@@ -58,8 +57,9 @@ export default function CreateNew() {
   const [dynSearch, setDynSearch] = useState('');
   const [rewSearch, setRewSearch] = useState('');
 
-  // Options state (initialized with local options.json, ready for API override later)
-  const [rawOptions, setRawOptions] = useState(localOptionsData || {});
+  // Options state (lấy từ API /release-options)
+  const [rawOptions, setRawOptions] = useState({});
+  const [optionsLoading, setOptionsLoading] = useState(false);
   const [categoryList, setCategoryList] = useState([]);
   const [mechanicList, setMechanicList] = useState([]);
   const [dynamicsList, setDynamicsList] = useState([]);
@@ -74,20 +74,7 @@ export default function CreateNew() {
   const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
 
   // Grid danh sách các release
-  const [createdList, setCreatedList] = useState(() => {
-    try {
-      const saved = localStorage.getItem('created_releases_grid');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('created_releases_grid', JSON.stringify(createdList));
-    } catch (e) {}
-  }, [createdList]);
+  const [createdList, setCreatedList] = useState([]);
 
   // Format apps from options.apps
   const appOptions = useMemo(() => {
@@ -159,7 +146,7 @@ export default function CreateNew() {
     [appOptions]
   );
 
-  // Tải danh sách Release/Event cho Game + Date vào grid
+  // Tải danh sách Release/Event cho Game + Date vào grid từ API /createNewItem
   const loadGameEvents = useCallback(
     async (gameId, date, showToast = false) => {
       if (!gameId) {
@@ -170,56 +157,16 @@ export default function CreateNew() {
       setGridLoading(true);
       try {
         const dateStr = date ? date.format('YYYY-MM-DD') : '';
+        const itemRes = await axios.get(`/createNewItem?gameid=${gameId}${dateStr ? `&date=${dateStr}` : ''}`);
+        const items = Array.isArray(itemRes.data?.data) ? itemRes.data.data : [];
+        setCreatedList(items);
 
-        // 1. Ưu tiên: Gọi API mới /createNewItem từ backend
-        try {
-          const itemRes = await axios.get(`/createNewItem?gameid=${gameId}${dateStr ? `&date=${dateStr}` : ''}`, { timeout: 3500 });
-          if (itemRes.data && Array.isArray(itemRes.data.data) && itemRes.data.data.length > 0) {
-            setCreatedList(itemRes.data.data);
-            if (showToast) message.success(`Đã tải ${itemRes.data.data.length} release từ Database!`);
-            return;
+        if (showToast) {
+          if (items.length > 0) {
+            message.success(`Đã tải ${items.length} release từ Database!`);
+          } else {
+            message.info('Không có release nào cho game này.');
           }
-        } catch (itemErr) {
-          // Bỏ qua và chuyển sang phương án tiếp theo
-        }
-
-        // 2. Thử gọi API theo ngày: /games?date=YYYY-MM-DD
-        let events = [];
-        try {
-          const res = await axios.get(`/games?date=${dateStr || dayjs().format('YYYY-MM-DD')}`, { timeout: 3500 });
-          if (Array.isArray(res.data)) {
-            const section = res.data.find((s) => s.id === gameId);
-            if (section && Array.isArray(section.events) && section.events.length > 0) {
-              events = section.events;
-            }
-          }
-        } catch (e) {
-          // Bỏ qua lỗi timeout hoặc mạng và fallback
-        }
-
-        if (events.length > 0) {
-          const formatted = events.slice(0, 30).map((e, idx) => {
-            const releaseName = e.name + (e.g_name ? ` (${e.g_name})` : '');
-            return {
-              id: e.gallery_id || e.id || `evt-${idx}`,
-              galleryId: e.gallery_id || 'ID',
-              title: releaseName,
-              displayText: `-Added tracker date for ${releaseName}`,
-              from: e.from || '',
-              to: e.to || '',
-              status: 1,
-              url: e.gallery_id
-                ? `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${e.gallery_id}`
-                : undefined,
-              createdAt: new Date().toISOString(),
-              valid: true,
-            };
-          });
-
-          setCreatedList(formatted);
-          if (showToast) message.success(`Đã tải ${formatted.length} release cho game!`);
-        } else {
-          if (showToast) message.info('Không có release nào cho game này.');
         }
       } catch (err) {
         console.error('Lỗi khi tải danh sách release:', err);
@@ -266,15 +213,24 @@ export default function CreateNew() {
     }
   };
 
-  // Load ban đầu: danh sách game và options
+  // Load ban đầu: danh sách options và game từ /release-options
   const fetchInitialData = async () => {
+    setOptionsLoading(true);
     try {
-      // 1. Lấy danh sách Game từ API /listGame
-      try {
-        const gamesRes = await axios.get('/listGame');
-        if (Array.isArray(gamesRes.data)) {
+      const optionsRes = await axios.get('/release-options');
+      const data = optionsRes.data;
+
+      if (data) {
+        if (data.options) {
+          setRawOptions(data.options);
+        } else if (data.apps) {
+          setRawOptions(data);
+        }
+
+        const games = data.listGames || data.listGame;
+        if (Array.isArray(games) && games.length > 0) {
           setGameList(
-            gamesRes.data.map((item) => ({
+            games.map((item) => ({
               value: item.id,
               label: item.name,
               name: item.name,
@@ -282,32 +238,11 @@ export default function CreateNew() {
             }))
           );
         }
-      } catch (e) {
-        // Fallback
-      }
-
-      // 2. Fetch options từ API (/release-options)
-      try {
-        const optionsRes = await axios.get('/release-options');
-        if (optionsRes.data && (optionsRes.data.options || optionsRes.data.apps)) {
-          setRawOptions(optionsRes.data.options || optionsRes.data);
-        }
-
-        if (Array.isArray(optionsRes.data?.listGame) && optionsRes.data.listGame.length > 0) {
-          setGameList(
-            optionsRes.data.listGame.map((item) => ({
-              value: item.id,
-              label: item.name,
-              name: item.name,
-              app_name: item.app_name,
-            }))
-          );
-        }
-      } catch (optErr) {
-        // Fallback: Giữ nguyên dữ liệu từ data.json
       }
     } catch (err) {
-      console.error('Lỗi khi khởi tạo dữ liệu:', err);
+      console.error('Lỗi khi tải /release-options:', err);
+    } finally {
+      setOptionsLoading(false);
     }
   };
 
@@ -350,17 +285,6 @@ export default function CreateNew() {
     }
   };
 
-  // Hàm sinh UUID giả lập chuẩn RFC4122
-  const generateUUID = () => {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  };
 
   // Hàm xử lý Reset trắng các ô nhập khi tạo mới thành công
   const resetFormInputs = () => {
@@ -496,55 +420,30 @@ export default function CreateNew() {
         const item = response.data.data || response.data.result;
         setCreatedList((prev) => [item, ...prev]);
         resetFormInputs();
-        setLoading(false);
         message.success(`Đã tạo và lưu CSDL: "${releaseTitle}"`);
-        return;
+      } else {
+        resetFormInputs();
+        loadGameEvents(selectedGame, selectedDate);
+        message.success(`Đã tạo và lưu CSDL: "${releaseTitle}"`);
       }
     } catch (apiErr) {
-      console.warn('Backend chưa sẵn sàng hoặc lỗi, dùng fallback client:', apiErr.message);
+      console.error('Lỗi khi tạo release:', apiErr);
+      message.error(`Lỗi khi tạo: ${apiErr.response?.data?.error || apiErr.message}`);
+    } finally {
+      setLoading(false);
     }
-
-    // 2. FALLBACK TẠO NHANH (Khi chưa bật backend hoặc offline)
-    const dummyId = generateUUID();
-    const editUrl = `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${dummyId}`;
-
-    const displayText = releaseTitle.startsWith('-Added')
-      ? releaseTitle
-      : `-Added tracker date for ${releaseTitle}`;
-
-    const newItem = {
-      id: dummyId,
-      galleryId: dummyId,
-      title: releaseTitle,
-      displayText,
-      from: fromStr,
-      to: toStr,
-      status: 1,
-      url: editUrl,
-      createdAt: new Date().toISOString(),
-      valid: true,
-    };
-
-    setCreatedList((prev) => [newItem, ...prev]);
-    resetFormInputs();
-    setLoading(false);
-    message.success(`Đã tạo và thêm vào danh sách: "${releaseTitle}"`);
   };
 
   // Cập nhật trạng thái status: 1 -> 2 (Public) hoặc 3 (Đẩy Google Sheet)
-  const handleUpdateStatus = async (item, newStatus) => {
+  const handleUpdateStatus = async (item) => {
     try {
       if (item.id && typeof item.id === 'number') {
-        await axios.put(`/createNewItem/${item.id}`, { status: newStatus });
+        await axios.put(`/createNewItem/${item.id}`);
       }
       setCreatedList((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, status: newStatus } : i))
+        prev.map((i) => (i.id === item.id ? { ...i, status: 3 } : i))
       );
-      if (newStatus === 3) {
-        message.success('Đã cập nhật và đẩy lên Google Sheet thành công!');
-      } else {
-        message.success('Cập nhật trạng thái thành công!');
-      }
+      message.success('Đã cập nhật và đẩy lên Google Sheet thành công!');
     } catch (err) {
       message.error('Lỗi cập nhật trạng thái');
     }
@@ -576,6 +475,7 @@ export default function CreateNew() {
               placeholder="Chọn game (bắt buộc)..."
               style={{ width: '100%' }}
               status={!selectedGame ? 'warning' : ''}
+              loading={optionsLoading}
               value={selectedGame}
               options={gameList}
               onChange={handleGameSelect}
@@ -684,6 +584,7 @@ export default function CreateNew() {
               allowClear
               placeholder="Choose an app..."
               style={{ width: '100%' }}
+              loading={optionsLoading}
               value={app}
               options={appOptions}
               onChange={(val) => setApp(val)}
@@ -701,6 +602,7 @@ export default function CreateNew() {
               allowClear
               placeholder="Choose a category..."
               style={{ width: '100%' }}
+              loading={optionsLoading}
               value={category}
               options={catOptions}
               onSearch={setCatSearch}
@@ -722,6 +624,7 @@ export default function CreateNew() {
               allowClear
               placeholder="Choose a mechanic..."
               style={{ width: '100%' }}
+              loading={optionsLoading}
               value={mechanic}
               options={mechOptions}
               onSearch={setMechSearch}
@@ -754,6 +657,7 @@ export default function CreateNew() {
               allowClear
               placeholder="Choose..."
               style={{ width: '100%' }}
+              loading={optionsLoading}
               value={dynamics}
               options={dynOptions}
               onSearch={setDynSearch}
@@ -772,6 +676,7 @@ export default function CreateNew() {
               allowClear
               placeholder="Choose..."
               style={{ width: '100%' }}
+              loading={optionsLoading}
               value={rewardTypes}
               options={rewOptions}
               onSearch={setRewSearch}
@@ -794,10 +699,6 @@ export default function CreateNew() {
           >
             Create New
           </Button>
-
-          <Tag color="green" style={{ padding: '4px 10px', fontSize: 13, borderRadius: 4 }}>
-            ⚡ API Connected: POST /createNewItem
-          </Tag>
         </div>
 
         {/* Khối hiển thị Log tuần tự các Item khi truyền lên */}
@@ -946,12 +847,8 @@ export default function CreateNew() {
                   flexWrap: 'wrap',
                 }}
               >
-                <span>{item.displayText}</span>
-                {(item.from || item.to) && (
-                  <Tag color="blue" style={{ fontSize: 12, margin: 0 }}>
-                    📅 {item.from || '...'} {item.to ? `~ ${item.to}` : ''}
-                  </Tag>
-                )}
+                <span>{item.name || item.title}</span>
+           
 
                 {/* Tag hiển thị trạng thái */}
                 {item.status === 3 ? (
@@ -1001,8 +898,7 @@ export default function CreateNew() {
                   icon={<EyeOutlined style={{ fontSize: 16 }} />}
                   onClick={() =>
                     window.open(
-                      item.url ||
-                        `https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=${item.galleryId || item.gallery_id}`,
+                      item.url ,
                       '_blank'
                     )
                   }
@@ -1013,11 +909,10 @@ export default function CreateNew() {
                 <Button
                   type="text"
                   size="small"
+                  disabled={item.status === 3 || item.status == 1}
                   onClick={() => {
-                    const nextStatus = item.status === 1 ? 2 : (item.status === 2 ? 3 : 1);
-                    handleUpdateStatus(item, nextStatus);
+                    handleUpdateStatus(item);
                   }}
-                  title={`Status: ${item.status || 1} (Bấm để đổi)`}
                   icon={
                     <CheckCircleOutlined
                       style={{
