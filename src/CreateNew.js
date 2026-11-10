@@ -669,9 +669,11 @@ export default function CreateNew() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '12px 20px',
+            padding: '12px 16px',
             backgroundColor: '#f9fafb',
             borderBottom: '1px solid #e5e7eb',
+            flexWrap: 'wrap',
+            gap: 8,
           }}
         >
           <span style={{ fontSize: 13, fontWeight: 600, color: '#4b5563' }}>
@@ -698,33 +700,11 @@ export default function CreateNew() {
           createdList.map((item, index) => (
             <div
               key={item.id || index}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 20px',
-                borderBottom: index < createdList.length - 1 ? '1px solid #f0f0f0' : 'none',
-                gap: 16,
-                backgroundColor: '#ffffff',
-                transition: 'background-color 0.15s ease',
-              }}
+              className="release-item-row"
             >
-              {/* Bên trái: Tên Event / Release + Khoảng ngày From-To */}
-              <div
-                style={{
-                  fontSize: 14,
-                  color: '#1f2937',
-                  fontWeight: 400,
-                  flex: 1,
-                  wordBreak: 'break-word',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <span>{item.name || item.title}</span>
-           
+              {/* Bên trái (hoặc hàng trên ở mobile): Tên Event / Release + Tag trạng thái */}
+              <div className="release-item-main">
+                <span className="release-item-title-text">{item.name || item.title}</span>
 
                 {/* Tag hiển thị trạng thái */}
                 {item.status === 3 ? (
@@ -736,68 +716,67 @@ export default function CreateNew() {
                 )}
               </div>
 
-              {/* Bên phải: ID màu đỏ + 3 Icon (Expand, Eye, Checkmark/Status) */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  justifyContent: 'flex-end',
-                  flexShrink: 0,
-                }}
-              >
-                {/* ID màu đỏ */}
+              {/* Bên phải (hoặc hàng dưới ở mobile): ID màu đỏ + 3 Nút thao tác */}
+              <div className="release-item-actions-wrapper">
+                {/* ID màu đỏ - click để copy */}
                 <span
-                  style={{
-                    color: '#ef4444',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    fontFamily: 'monospace',
+                  className="release-item-uuid"
+                  title={item.galleryId || item.gallery_id ? `Click để copy ID: ${item.galleryId || item.gallery_id}` : 'ID'}
+                  onClick={() => {
+                    const gid = item.galleryId || item.gallery_id;
+                    if (gid && gid !== 'ID') {
+                      navigator.clipboard?.writeText(gid);
+                      message.success('Đã copy ID!');
+                    }
                   }}
                 >
                   {item.galleryId || item.gallery_id || 'ID'}
                 </span>
 
-                {/* Nút xem ảnh / gallery */}
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ExpandOutlined style={{ fontSize: 16 }} />}
-                  onClick={() => setViewImageModal({ open: true, galleryId: item.galleryId || item.gallery_id })}
-                  title="Xem ảnh gallery"
-                />
+                {/* Cụm 3 nút bấm luôn hiển thị đủ trên mobile */}
+                <div className="release-item-btn-group">
+                  {/* Nút xem ảnh / gallery */}
+                  <Button
+                    type="text"
+                    className="release-action-btn"
+                    icon={<ExpandOutlined style={{ fontSize: 16 }} />}
+                    onClick={() => setViewImageModal({ open: true, galleryId: item.galleryId || item.gallery_id })}
+                    title="Xem ảnh gallery"
+                  />
 
-                {/* Nút mở trang CMS Liquid & Grit */}
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<EyeOutlined style={{ fontSize: 16 }} />}
-                  onClick={() =>
-                    window.open(
-                      item.url ,
-                      '_blank'
-                    )
-                  }
-                  title="Mở gallery CMS"
-                />
+                  {/* Nút mở trang CMS Liquid & Grit */}
+                  <Button
+                    type="text"
+                    className="release-action-btn"
+                    disabled={!item.url}
+                    icon={<EyeOutlined style={{ fontSize: 16, color: item.url ? '#2563eb' : undefined }} />}
+                    onClick={() => {
+                      if (item.url) {
+                        window.open(item.url, '_blank');
+                      }
+                    }}
+                    title={item.url ? "Mở gallery CMS" : "Chưa có link CMS"}
+                  />
 
-                {/* Icon tích xanh / Thay đổi trạng thái */}
-                <Button
-                  type="text"
-                  size="small"
-                  disabled={item.status === 3 || item.status == 1}
-                  onClick={() => {
-                    handleUpdateStatus(item);
-                  }}
-                  icon={
-                    <CloudOutlined 
-                      style={{
-                        color: item.status === 3 ? '#1677ff' : '#52c41a',
-                        fontSize: 18,
-                      }}
-                    />
-                  }
-                />
+                  {/* Icon tích xanh / Thay đổi trạng thái */}
+                  <Button
+                    type="text"
+                    className="release-action-btn"
+                    disabled={item.status === 3 || item.status === 1}
+                    onClick={() => {
+                      handleUpdateStatus(item);
+                    }}
+                    title={item.status === 3 ? "Đã lên Sheet" : item.status === 2 ? "Cập nhật lên Google Sheet" : "Chưa Public"}
+                    icon={
+                      <CloudOutlined 
+                        style={{
+                          color: item.status === 3 ? '#1677ff' : item.status === 2 ? '#52c41a' : '#9ca3af',
+                          fontSize: 17,
+                        }}
+                      />
+                    }
+                  />
+                </div>
               </div>
             </div>
           ))
