@@ -353,40 +353,6 @@ export default function CreateNew() {
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    // 1. In log ra Browser Console theo thứ tự lần lượt (hiển thị rõ ID gửi đi):
-    console.log('%c====================================================', 'color: #2563eb');
-    console.log('%c🚀 [TRUYỀN LÊN ITEM MỚI] - GỬI ID THEO THỨ TỰ LẦN LƯỢT:', 'background: #2563eb; color: #fff; font-weight: bold; padding: 4px 8px; border-radius: 4px;');
-    console.log('1️⃣ Game ID:', selectedGame, `(${gameName})`);
-    console.log('2️⃣ Title:', releaseTitle);
-    console.log('3️⃣ Publish Date:', dateStr);
-    console.log('4️⃣ From:', fromStr || '(trống)');
-    console.log('5️⃣ To:', toStr || '(trống)');
-    console.log('6️⃣ App ID:', app, `(${appName})`);
-    console.log('7️⃣ Category:', category || '(trống)');
-    console.log('8️⃣ Mechanic ID:', mechanic || '(trống)', `(${mechanicName})`);
-    console.log('9️⃣ Dynamics ID:', dynamics || '(trống)', `(${dynamicsName})`);
-    console.log('🔟 Reward Types ID:', rewardTypes || '(trống)', `(${rewardTypesName})`);
-    console.log('1️⃣1️⃣ Status:', 1, '(Chưa public)');
-    console.log('📦 Toàn bộ Payload Object gửi đi (Chỉ gửi ID):', {
-      gameid: selectedGame,
-      gameId: selectedGame,
-      name: releaseTitle,
-      title: releaseTitle,
-      date: dateStr,
-      publicDate: dateStr,
-      from: fromStr,
-      to: toStr,
-      app: app, // App ID
-      category,
-      mechanic, // Mechanic ID
-      mechanic_id: mechanic,
-      dynamics, // Dynamics ID
-      dynamics_id: dynamics,
-      rewardTypes, // Reward Types ID
-      reward_types: rewardTypes,
-      status: 1,
-    });
-    console.log('%c====================================================', 'color: #2563eb');
 
     // Lưu vào state để hiển thị trực tiếp lên UI
     setSubmittedLog(logInfo);
@@ -438,7 +404,7 @@ export default function CreateNew() {
   const handleUpdateStatus = async (item) => {
     try {
       if (item.id && typeof item.id === 'number') {
-        await axios.put(`/createNewItem/${item.id}`);
+        await axios.put(`/createNewItem/${item.id}`, item);
       }
       setCreatedList((prev) =>
         prev.map((i) => (i.id === item.id ? { ...i, status: 3 } : i))
