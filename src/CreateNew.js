@@ -43,6 +43,7 @@ export default function CreateNew() {
 
   // Form Fields
   const [title, setTitle] = useState('');
+  const [publishDate, setPublishDate] = useState(dayjs());
   const [fromDate, setFromDate] = useState(dayjs());
   const [toDate, setToDate] = useState();
   const [app, setApp] = useState();
@@ -312,50 +313,15 @@ export default function CreateNew() {
       return;
     }
 
-    const selectedGameObj = gameList.find((g) => g.value === selectedGame);
-    const gameName = selectedGameObj ? selectedGameObj.name : `Game #${selectedGame}`;
-
     // Tìm tên tương ứng của các ID để hiển thị log rõ ràng
     const selectedAppObj = appOptions.find((a) => a.value === app);
     const appName = selectedAppObj ? selectedAppObj.name : (app || 'Chưa chọn');
 
-    const selectedMechObj = mechOptions.find((m) => m.value === mechanic);
-    const mechanicName = selectedMechObj ? selectedMechObj.label : (mechanic || 'Chưa chọn');
-
-    const selectedDynObj = dynOptions.find((d) => d.value === dynamics);
-    const dynamicsName = selectedDynObj ? selectedDynObj.label : (dynamics || 'Chưa chọn');
-
-    const selectedRewObj = rewOptions.find((r) => r.value === rewardTypes);
-    const rewardTypesName = selectedRewObj ? selectedRewObj.label : (rewardTypes || 'Chưa chọn');
-
     const fromStr = fromDate ? fromDate.format('YYYY/MM/DD') : '';
     const toStr = toDate ? toDate.format('YYYY/MM/DD') : '';
     const dateStr = selectedDate ? selectedDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
-
-    // Cấu trúc log hiển thị rõ ID gửi đi
-    const logInfo = {
-      gameId: selectedGame,
-      gameName,
-      title: releaseTitle,
-      date: dateStr,
-      from: fromStr,
-      to: toStr,
-      appId: app,
-      appName,
-      category: category || '',
-      mechanicId: mechanic || '',
-      mechanicName,
-      dynamicsId: dynamics || '',
-      dynamicsName,
-      rewardTypesId: rewardTypes || '',
-      rewardTypesName,
-      status: 1,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-
-    // Lưu vào state để hiển thị trực tiếp lên UI
-    setSubmittedLog(logInfo);
+    const publicDateStr = publishDate ? publishDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
+    
 
     setLoading(true);
 
@@ -367,7 +333,7 @@ export default function CreateNew() {
         name: releaseTitle,
         title: releaseTitle,
         date: dateStr,
-        publicDate: dateStr,
+        publicDate: publicDateStr,
         from: fromStr,
         to: toStr,
         app: app,
@@ -505,9 +471,9 @@ export default function CreateNew() {
             <FormLabel label="Publish Date" />
             <DatePicker
               style={{ width: '100%' }}
-              value={selectedDate}
+              value={publishDate}
               onChange={(date) => {
-                setSelectedDate(date);
+                setPublishDate(date);
                 if (!fromDate) setFromDate(date);
               }}
               format="MMM D, YYYY"
@@ -667,64 +633,7 @@ export default function CreateNew() {
           </Button>
         </div>
 
-        {/* Khối hiển thị Log tuần tự các Item khi truyền lên */}
-        {submittedLog && (
-          <div
-            style={{
-              marginTop: 20,
-              padding: '14px 18px',
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #86efac',
-              borderRadius: 8,
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 10,
-                borderBottom: '1px dashed #bbf7d0',
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ fontWeight: 700, color: '#166534', fontSize: 14 }}>
-                📋 Log các item đã truyền lên (thứ tự lần lượt lúc {submittedLog.timestamp}):
-              </span>
-              <Button
-                type="text"
-                size="small"
-                onClick={() => setSubmittedLog(null)}
-                style={{ color: '#6b7280', fontSize: 12 }}
-              >
-                ✕ Đóng log
-              </Button>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '8px 20px',
-                fontSize: 13,
-                color: '#1f2937',
-              }}
-            >
-              <div><b>1. Game ID:</b> <Tag color="blue">{submittedLog.gameId}</Tag> <span style={{ color: '#4b5563', fontSize: 12 }}>({submittedLog.gameName})</span></div>
-              <div><b>2. Title:</b> <span style={{ color: '#1d4ed8', fontWeight: 600 }}>{submittedLog.title}</span></div>
-              <div><b>3. Publish Date:</b> <span>{submittedLog.date}</span></div>
-              <div><b>4. From:</b> <span>{submittedLog.from || '(trống)'}</span></div>
-              <div><b>5. To:</b> <span>{submittedLog.to || '(trống)'}</span></div>
-              <div><b>6. App ID:</b> <Tag color="cyan">{submittedLog.appId}</Tag> <span style={{ color: '#4b5563', fontSize: 12 }}>({submittedLog.appName})</span></div>
-              <div><b>7. Category:</b> <span>{submittedLog.category || '(trống)'}</span></div>
-              <div><b>8. Mechanic ID:</b> <Tag color="purple">{submittedLog.mechanicId || '(chưa chọn)'}</Tag> <span style={{ color: '#4b5563', fontSize: 12 }}>({submittedLog.mechanicName})</span></div>
-              <div><b>9. Dynamics ID:</b> <Tag color="magenta">{submittedLog.dynamicsId || '(chưa chọn)'}</Tag> <span style={{ color: '#4b5563', fontSize: 12 }}>({submittedLog.dynamicsName})</span></div>
-              <div><b>10. Reward Types ID:</b> <Tag color="geekblue">{submittedLog.rewardTypesId || '(chưa chọn)'}</Tag> <span style={{ color: '#4b5563', fontSize: 12 }}>({submittedLog.rewardTypesName})</span></div>
-              <div><b>11. Status:</b> <Tag color="orange">1 (Chưa public)</Tag></div>
-            </div>
-          </div>
-        )}
+       
 
         {/* Link Edit Result */}
         {urlEdit && (
@@ -880,7 +789,7 @@ export default function CreateNew() {
                     handleUpdateStatus(item);
                   }}
                   icon={
-                    <CheckCircleOutlined
+                    <CloudOutlined 
                       style={{
                         color: item.status === 3 ? '#1677ff' : '#52c41a',
                         fontSize: 18,
