@@ -11,6 +11,7 @@ import {
   Card,
   Alert,
   Modal,
+  List,
 } from 'antd';
 import {
   ReloadOutlined,
@@ -653,74 +654,105 @@ export default function CreateNew() {
         )}
       </Card>
 
-      {/* Grid Danh Sách Kết Quả Tạo (Như ảnh số 2) */}
-      <Card
-        style={{
-          marginTop: 20,
-          borderRadius: 8,
-          border: '1px solid #e5e7eb',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-          overflow: 'hidden',
-        }}
-        bodyStyle={{ padding: 0 }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 16px',
-            backgroundColor: '#f9fafb',
-            borderBottom: '1px solid #e5e7eb',
-            flexWrap: 'wrap',
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#4b5563' }}>
-            Danh sách Release ({createdList.length})
-          </span>
-          {/* Nút "Load lại danh sách" */}
-          <Button
-            type="text"
-            size="small"
-            icon={<ReloadOutlined />}
-            onClick={handleReloadList}
-            loading={gridLoading}
-            style={{ color: '#2563eb', fontWeight: 500 }}
+      {/* Danh Sách Kết Quả Tạo (Style giống trang /check) */}
+      <List
+        bordered
+        style={{ marginTop: 20, backgroundColor: '#ffffff' }}
+        header={
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
           >
-            Load lại danh sách
-          </Button>
-        </div>
-
-        {createdList.length === 0 ? (
-          <div style={{ padding: '32px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
-            Chưa có release nào trong danh sách. Hãy chọn <b>Game</b> để tải danh sách hoặc nhấn <b>Create New</b>.
-          </div>
-        ) : (
-          createdList.map((item, index) => (
-            <div
-              key={item.id || index}
-              className="release-item-row"
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#4b5563' }}>
+              Danh sách Release ({createdList.length})
+            </span>
+            <Button
+              type="text"
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={handleReloadList}
+              loading={gridLoading}
+              style={{ color: '#2563eb', fontWeight: 500 }}
             >
-              {/* Bên trái (hoặc hàng trên ở mobile): Tên Event / Release + Tag trạng thái */}
-              <div className="release-item-main">
-                <span className="release-item-title-text">{item.name || item.title}</span>
+              Load lại danh sách
+            </Button>
+          </div>
+        }
+        locale={{
+          emptyText: (
+            <span>
+              Chưa có release nào trong danh sách. Hãy chọn <b>Game</b> để tải danh sách hoặc nhấn <b>Create New</b>.
+            </span>
+          ),
+        }}
+        dataSource={createdList}
+        renderItem={(item) => (
+          <List.Item
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              padding: '12px 16px',
+              gap: '12px 20px',
+            }}
+          >
+            {/* BÊN TAY TRÁI: Tên Event + Tag trạng thái */}
+            <div
+              style={{
+                flex: '1 1 220px',
+                minWidth: 0,
+                paddingTop: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              <span>{item.name || item.title}</span>
+              {item.status === 3 ? (
+                <Tag color="success" style={{ marginInlineEnd: 0 }}>Đã lên Sheet</Tag>
+              ) : item.status === 2 ? (
+                <Tag color="processing" style={{ marginInlineEnd: 0 }}>Đã Public</Tag>
+              ) : (
+                <Tag color="default" style={{ marginInlineEnd: 0 }}>Chưa Public</Tag>
+              )}
+            </div>
 
-                {/* Tag hiển thị trạng thái */}
-                {item.status === 3 ? (
-                  <Tag color="success">Đã lên Sheet</Tag>
-                ) : item.status === 2 ? (
-                  <Tag color="processing">Đã Public</Tag>
-                ) : (
-                  <Tag color="default">Chưa Public</Tag>
-                )}
-              </div>
-
-              {/* Bên phải (hoặc hàng dưới ở mobile): ID màu đỏ + 3 Nút thao tác */}
-              <div className="release-item-actions-wrapper">
-                {/* ID màu đỏ - click để copy */}
+            {/* BÊN TAY PHẢI: ID màu đỏ + Cụm Icon giống trang /check */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                minWidth: '150px',
+                maxWidth: '100%',
+                marginLeft: 'auto',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: '10px',
+                  padding: '4px 0',
+                }}
+              >
                 <span
-                  className="release-item-uuid"
+                  style={{
+                    color: 'red',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    wordBreak: 'break-word',
+                    cursor: 'pointer',
+                  }}
                   title={item.galleryId || item.gallery_id ? `Click để copy ID: ${item.galleryId || item.gallery_id}` : 'ID'}
                   onClick={() => {
                     const gid = item.galleryId || item.gallery_id;
@@ -733,45 +765,37 @@ export default function CreateNew() {
                   {item.galleryId || item.gallery_id || 'ID'}
                 </span>
 
-                {/* Cụm 3 nút bấm luôn hiển thị đủ trên mobile */}
-                <div className="release-item-btn-group">
-                  {/* Nút xem ảnh / gallery */}
+                <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
                   <Button
                     type="text"
-                    className="release-action-btn"
-                    icon={<ExpandOutlined style={{ fontSize: 16 }} />}
+                    size="small"
+                    icon={<ExpandOutlined />}
                     onClick={() => setViewImageModal({ open: true, galleryId: item.galleryId || item.gallery_id })}
                     title="Xem ảnh gallery"
                   />
-
-                  {/* Nút mở trang CMS Liquid & Grit */}
                   <Button
                     type="text"
-                    className="release-action-btn"
+                    size="small"
                     disabled={!item.url}
-                    icon={<EyeOutlined style={{ fontSize: 16, color: item.url ? '#2563eb' : undefined }} />}
+                    icon={<EyeOutlined />}
                     onClick={() => {
                       if (item.url) {
                         window.open(item.url, '_blank');
                       }
                     }}
-                    title={item.url ? "Mở gallery CMS" : "Chưa có link CMS"}
+                    title={item.url ? 'Mở gallery CMS' : 'Chưa có link CMS'}
                   />
-
-                  {/* Icon tích xanh / Thay đổi trạng thái */}
                   <Button
                     type="text"
-                    className="release-action-btn"
+                    size="small"
                     disabled={item.status === 3 || item.status === 1}
-                    onClick={() => {
-                      handleUpdateStatus(item);
-                    }}
-                    title={item.status === 3 ? "Đã lên Sheet" : item.status === 2 ? "Cập nhật lên Google Sheet" : "Chưa Public"}
+                    onClick={() => handleUpdateStatus(item)}
+                    title={item.status === 3 ? 'Đã lên Sheet' : item.status === 2 ? 'Cập nhật lên Google Sheet' : 'Chưa Public'}
                     icon={
-                      <CloudOutlined 
+                      <CloudOutlined
                         style={{
                           color: item.status === 3 ? '#1677ff' : item.status === 2 ? '#52c41a' : '#9ca3af',
-                          fontSize: 17,
+                          fontSize: '18px',
                         }}
                       />
                     }
@@ -779,9 +803,9 @@ export default function CreateNew() {
                 </div>
               </div>
             </div>
-          ))
+          </List.Item>
         )}
-      </Card>
+      />
 
       {/* Modal Xem Ảnh Gallery Chuẩn Mobile */}
       <Modal
