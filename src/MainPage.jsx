@@ -10,7 +10,8 @@ import {
   ExpandOutlined,
   BulbOutlined,
   ReloadOutlined,
-  KeyOutlined
+  KeyOutlined,
+  MinusCircleOutlined
 } from "@ant-design/icons";
 
 import dayjs from "dayjs";
@@ -51,6 +52,26 @@ export default function App() {
   const filterInputRef = useRef(null);
 
   const [suggetEventModal, setSuggetEventModal] = useState({isModalVisible: false, gameId: null, selectedDate: null});
+  const [noChangeLoading, setNoChangeLoading] = useState({});
+
+  const handleNoChange = async (sectionIndex, game) => {
+    const key = game?.id ?? sectionIndex;
+    try {
+      setNoChangeLoading((prev) => ({ ...prev, [key]: true }));
+      const dateStr = selectedDate.format("YYYY/MM/DD");
+      await axios.post('/nochange', {
+        gameId: game.id,
+        gameName: game.name,
+        date: dateStr,
+      });
+      message.success(`Đã gọi No Change cho ${game.name}!`);
+    } catch (err) {
+      console.error('❌ No Change error:', err);
+      message.error(`Lỗi gọi API No Change: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setNoChangeLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
   // 1. Theo dõi kích thước màn hình
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
@@ -577,6 +598,20 @@ export default function App() {
               key="0"
               extra={
                 <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<MinusCircleOutlined />}
+                    loading={!!noChangeLoading[fields.id ?? sectionIndex]}
+                    title="No Change"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNoChange(sectionIndex, fields);
+                    }}
+                  >
+                    {!isMobile && "No Change"}
+                  </Button>
+
                   <Button type="text" size="small" icon={<BulbOutlined />} onClick={(e) => {
                     e.stopPropagation();
                     setSuggetEventModal({isModalVisible: true, gameId: fields.id, selectedDate: selectedDate, sectionIndex})

@@ -6,7 +6,8 @@ import {
   HomeOutlined, 
   CheckCircleOutlined,
   UploadOutlined,
-  EditOutlined
+  EditOutlined,
+  PictureOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -20,6 +21,7 @@ export default function MenuLink({ activeKey }) {
     'search': '/search',
     'check': '/check',
     'updateContent': '/updateContent',
+    'media-actions': '/media-actions',
   };
 
   const pathToKey = {
@@ -28,6 +30,7 @@ export default function MenuLink({ activeKey }) {
     '/search': 'search',
     '/check': 'check',
     '/updateContent': 'updateContent',
+    '/media-actions': 'media-actions',
   };
 
   const currentKey = activeKey || pathToKey[location.pathname] || 'home';
@@ -57,6 +60,11 @@ export default function MenuLink({ activeKey }) {
       key: 'check',
       label: 'Kiểm tra',
       icon: <CheckCircleOutlined style={{ fontSize: 18 }} />,
+    },
+    {
+      key: 'media-actions',
+      label: 'Media',
+      icon: <PictureOutlined style={{ fontSize: 18 }} />,
     },
     {
       key: 'updateContent',

@@ -8,6 +8,7 @@ import CheckItem from "./CheckItem";
 import CreateNew from "./CreateNew";
 import MobileEditor from "./MobileEditor";
 import ViewImage from "./ViewImage";
+import MediaActions from "./MediaActions";
 
 function KeepAliveMainLayout() {
   const location = useLocation();
@@ -17,6 +18,7 @@ function KeepAliveMainLayout() {
     '/createNew': 'create-gallery',
     '/search': 'search',
     '/check': 'check',
+    '/media-actions': 'media-actions',
     '/updateContent': 'updateContent',
   };
 
@@ -49,6 +51,11 @@ function KeepAliveMainLayout() {
         <CheckItem />
       </div>
 
+      {/* 6. Media Actions Tab */}
+      <div style={{ display: currentTab === 'media-actions' ? 'block' : 'none' }}>
+        <MediaActions />
+      </div>
+
       <div style={{ display: currentTab === 'updateContent' ? 'block' : 'none' }}>
         <MobileEditor />
       </div>
@@ -65,6 +72,7 @@ export default function App() {
         <Route path="/createNew" element={<KeepAliveMainLayout />} />
         <Route path="/search" element={<KeepAliveMainLayout />} />
         <Route path="/check" element={<KeepAliveMainLayout />} />
+        <Route path="/media-actions" element={<KeepAliveMainLayout />} />
         <Route path="/updateContent" element={<KeepAliveMainLayout />} />
         
         {/* Các trang riêng lẻ khác */}
