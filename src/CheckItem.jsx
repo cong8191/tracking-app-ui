@@ -32,7 +32,7 @@ export default function CheckItem() {
   const [game, setGame] = useState();
   const [eventOptions, setEventOptions] = useState([]);
   const textAreaRef = useRef(null);
-  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
+  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null });
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [events, setEvents] = useState([]);
 
@@ -400,9 +400,7 @@ export default function CheckItem() {
                   icon={<ExpandOutlined />}
                   onClick={() => {
                     const gId = sub.galleryId || (sub.viewImage ? String(sub.viewImage).replace('vewImage/', '') : null);
-                    if (gId) {
-                      setViewImageModal({ open: true, galleryId: gId });
-                    }
+                    setViewImageModal({ open: true, galleryId: gId, url: sub.url, reskinName: item?.data.subEvent });
                   }}
                 />
               )}
@@ -457,13 +455,19 @@ export default function CheckItem() {
       {/* MODAL XEM ẢNH / GALLERY POPUP CHUẨN MOBILE */}
       <Modal
         open={viewImageModal.open}
-        onCancel={() => setViewImageModal({ open: false, galleryId: null })}
+        onCancel={() => setViewImageModal({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null })}
         width="95vw"
         style={{ maxWidth: '95vw', top: 10 }}
         footer={null}
         destroyOnClose
       >
-        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
+        {viewImageModal.open && (
+          <ViewImage 
+            gallery_id={viewImageModal.galleryId} 
+            url={viewImageModal.url}
+            reskinName={viewImageModal.reskinName}
+          />
+        )}
       </Modal>
     </div>
   );

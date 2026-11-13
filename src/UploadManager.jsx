@@ -661,7 +661,7 @@ export default function MultiFileUploader() {
         footer={null}
         destroyOnClose
       >
-        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
+        {viewImageModal.galleryId && <ViewImage gallery_id={viewImageModal.galleryId} />}
       </Modal>
     </div>
   );

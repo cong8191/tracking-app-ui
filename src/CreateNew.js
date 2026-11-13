@@ -74,7 +74,7 @@ export default function CreateNew() {
   const [submittedLog, setSubmittedLog] = useState(null);
 
   // Modal xem ảnh gallery
-  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
+  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null });
 
   // Grid danh sách các release
   const [createdList, setCreatedList] = useState([]);
@@ -770,20 +770,36 @@ export default function CreateNew() {
                     type="text"
                     size="small"
                     icon={<ExpandOutlined />}
-                    onClick={() => setViewImageModal({ open: true, galleryId: item.galleryId || item.gallery_id })}
+                    onClick={() => {
+                      const postSlug = item.post_slug || item.postSlug;
+                      const targetUrl = postSlug 
+                        ? `https://ai.liquidandgrit.com/feature-database/${postSlug}` 
+                        : (item.url || '');
+                      setViewImageModal({ 
+                        open: true, 
+                        galleryId: item.galleryId || item.gallery_id, 
+                        url: targetUrl, 
+                        post_slug: postSlug,
+                        reskinName: item.name || item.title 
+                      });
+                    }}
                     title="Xem ảnh gallery"
                   />
                   <Button
                     type="text"
                     size="small"
-                    disabled={!item.url}
+                    disabled={!item.url && !item.post_slug && !item.postSlug}
                     icon={<EyeOutlined />}
                     onClick={() => {
-                      if (item.url) {
-                        window.open(item.url, '_blank');
+                      const postSlug = item.post_slug || item.postSlug;
+                      const targetUrl = postSlug 
+                        ? `https://ai.liquidandgrit.com/feature-database/${postSlug}` 
+                        : item.url;
+                      if (targetUrl) {
+                        window.open(targetUrl, '_blank');
                       }
                     }}
-                    title={item.url ? 'Mở gallery CMS' : 'Chưa có link CMS'}
+                    title={(item.url || item.post_slug || item.postSlug) ? 'Mở gallery CMS' : 'Chưa có link CMS'}
                   />
                   <Button
                     type="text"
@@ -810,13 +826,19 @@ export default function CreateNew() {
       {/* Modal Xem Ảnh Gallery Chuẩn Mobile */}
       <Modal
         open={viewImageModal.open}
-        onCancel={() => setViewImageModal({ open: false, galleryId: null })}
+        onCancel={() => setViewImageModal({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null })}
         width="95vw"
         style={{ maxWidth: '95vw', top: 10 }}
         footer={null}
         destroyOnClose
       >
-        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
+        {viewImageModal.open && (
+          <ViewImage 
+            gallery_id={viewImageModal.galleryId} 
+            url={viewImageModal.url} 
+            reskinName={viewImageModal.reskinName}
+          />
+        )}
       </Modal>
     </div>
   );

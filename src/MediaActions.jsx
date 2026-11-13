@@ -26,7 +26,7 @@ export default function MediaActions() {
   const [selectedType, setSelectedType] = useState('all'); // 'all' | 'image' | 'video'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
+  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null });
 
   const loadMediaActions = useCallback(async (dateVal, typeVal, showToast = false) => {
     if (!dateVal) return;
@@ -237,8 +237,16 @@ export default function MediaActions() {
                     disabled={!item.gallery_id}
                     icon={<ExpandOutlined />}
                     onClick={() => {
-                      if (item.gallery_id) {
-                        setViewImageModal({ open: true, galleryId: item.gallery_id });
+                      if (item.gallery_id || item.post_slug || item.url) {
+                        const postSlug = item.post_slug || item.postSlug;
+                        const targetUrl = postSlug ? `https://ai.liquidandgrit.com/feature-database/${postSlug}` : (item.url || '');
+                        setViewImageModal({ 
+                          open: true, 
+                          galleryId: item.gallery_id, 
+                          url: targetUrl, 
+                          post_slug: postSlug,
+                          reskinName: item.name || item.title 
+                        });
                       }
                     }}
                     title="Xem ảnh gallery"
@@ -265,13 +273,19 @@ export default function MediaActions() {
       {/* Modal Xem Ảnh Gallery Chuẩn Mobile */}
       <Modal
         open={viewImageModal.open}
-        onCancel={() => setViewImageModal({ open: false, galleryId: null })}
+        onCancel={() => setViewImageModal({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null })}
         width="95vw"
         style={{ maxWidth: '95vw', top: 10 }}
         footer={null}
         destroyOnClose
       >
-        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
+        {viewImageModal.open && (
+          <ViewImage 
+            gallery_id={viewImageModal.galleryId} 
+            url={viewImageModal.url}
+            reskinName={viewImageModal.reskinName}
+          />
+        )}
       </Modal>
     </div>
   );

@@ -28,7 +28,7 @@ const { Option } = Select;
 
 export default function App() {
   const [sections, setSections] = useState([]);
-  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null });
+  const [viewImageModal, setViewImageModal] = useState({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null });
   const [loginWebModalOpen, setLoginWebModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [eventModalVisible, setEventModalVisible] = useState(false);
@@ -486,7 +486,23 @@ export default function App() {
                         {event.name} {event.g_name ? ` (${event.g_name})` : ''}
                       </div>
                       <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                        <Button type="text" size="small" icon={<ExpandOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: event.gallery_id }); }} />
+                        <Button 
+                          type="text" 
+                          size="small" 
+                          icon={<ExpandOutlined />} 
+                          onMouseDown={(e) => e.stopPropagation()} 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const targetUrl = event.post_slug ? `https://ai.liquidandgrit.com/feature-database/${event.post_slug}` : '';
+                            setViewImageModal({ 
+                              open: true, 
+                              galleryId: event.gallery_id, 
+                              url: targetUrl, 
+                              post_slug: event.post_slug,
+                              reskinName: event.name 
+                            }); 
+                          }} 
+                        />
                         {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open(`https://ai.liquidandgrit.com/feature-database/${event.post_slug}`, '_blank'); }} />}
                         <Button
                           type="text" size="small" icon={<EditOutlined />}
@@ -691,7 +707,23 @@ export default function App() {
                       {event.name} {event.g_name ? ` (${event.g_name})` : ''}
                     </div>
                     <div style={{ flexShrink: 0, display: 'flex', gap: 4 }}>
-                      <Button type="text" size="small" icon={<ExpandOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setViewImageModal({ open: true, galleryId: event.gallery_id }); }} />
+                      <Button 
+                        type="text" 
+                        size="small" 
+                        icon={<ExpandOutlined />} 
+                        onMouseDown={(e) => e.stopPropagation()} 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const targetUrl = event.post_slug ? `https://ai.liquidandgrit.com/feature-database/${event.post_slug}` : '';
+                          setViewImageModal({ 
+                            open: true, 
+                            galleryId: event.gallery_id, 
+                            url: targetUrl, 
+                            post_slug: event.post_slug,
+                            reskinName: event.name 
+                          }); 
+                        }} 
+                      />
                       {event.post_slug && <Button type="text" size="small" icon={<ReadOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open(`https://my.liquidandgrit.com/library/gallery/${event.post_slug}`, '_blank'); }} />}
                       <Button type="text" size="small" icon={<EyeOutlined />} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); window.open('https://my.liquidandgrit.com/admin/cms/blog/?page=8&gallery-edit-instance=' + event.gallery_id, '_blank'); }} />
                     </div>
@@ -803,13 +835,19 @@ export default function App() {
       {/* MODAL XEM ẢNH / GALLERY POPUP CHUẨN MOBILE */}
       <Modal
         open={viewImageModal.open}
-        onCancel={() => setViewImageModal({ open: false, galleryId: null })}
+        onCancel={() => setViewImageModal({ open: false, galleryId: null, url: null, post_slug: null, reskinName: null })}
         width="95vw"
         style={{ maxWidth: '95vw', top: 10 }}
         footer={null}
         destroyOnClose
       >
-        {viewImageModal.galleryId && <ViewImage event_id={viewImageModal.galleryId} />}
+        {viewImageModal.open && (
+          <ViewImage 
+            gallery_id={viewImageModal.galleryId} 
+            url={viewImageModal.url}
+            reskinName={viewImageModal.reskinName}
+          />
+        )}
       </Modal>
       {/* MODAL MỞ TRÌNH DUYỆT ĐĂNG NHẬP LIQUIDANDGRIT */}
       <Modal
