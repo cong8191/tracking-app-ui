@@ -70,29 +70,9 @@ export default function SearchableTable({gameId, returnParent}) {
 }
 
   const handleFetchId = async (index,record) => {
-    setLoadingId(record.href);
-    try {
-      const response = await axios.post(`/get-gallery-info`, { gameId: game, galleryName: record.title});
-      const data = response.data;
-      const ifo = {...info};
-      
-      const list = (record.sub?.split(',').map(item => item.trim()) || []);
-      list.push(cutString(record.title));
-      
-
-      ifo[index] = {...data, title: cutString(record.title) , events: list.filter((kw) =>
-    kw.toLowerCase().includes(keyword.toLowerCase())
-    ) };
-      if(returnParent) {
-        returnParent(ifo[index])
+    if(returnParent) {
+        returnParent(record)
         return;
-      }
-      setInfo(ifo);
-      message.success(`ID của "${record.title}" là: ${data.id}`);
-    } catch (err) {
-      message.error('Không lấy được ID', err);
-    } finally {
-      setLoadingId(null);
     }
   };
 
@@ -115,25 +95,18 @@ export default function SearchableTable({gameId, returnParent}) {
       minWidth: '150px',
       key: 'actions',
       render: (_, record, index) => (
+        
         <div>
-<Button
+           <Text copyable={{ text: record.id}}>{record.id}</Text>
+           {returnParent && (
+              <Button
           loading={loadingId === record.href}
           onClick={() => handleFetchId(index,record)}
         >
           Lấy ID 
         </Button>
-       {info?.[index] && (
-        <div>
-            <div style={{ marginTop: '10px'}}>
-            ID:   {info[index]?.id}
-        </div>
-        {info[index]?.events?.map(name=>(
-             <div>{name}  </div>
-        ))}
-       
-            </div>
-        
-        )} 
+           )}
+
         </div>
         
         

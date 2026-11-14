@@ -370,7 +370,9 @@ export default function CreateNew() {
 
   // Cập nhật trạng thái status: 1 -> 2 (Public) hoặc 3 (Đẩy Google Sheet)
   const handleUpdateStatus = async (item) => {
+    setLoading(true);
     try {
+      
       if (item.id && typeof item.id === 'number') {
         await axios.put(`/createNewItem/${item.id}`, item);
       }
@@ -378,9 +380,12 @@ export default function CreateNew() {
         prev.map((i) => (i.id === item.id ? { ...i, status: 3 } : i))
       );
       message.success('Đã cập nhật và đẩy lên Google Sheet thành công!');
+      setLoading(false);
     } catch (err) {
       message.error('Lỗi cập nhật trạng thái');
+      setLoading(false);
     }
+    
   };
 
   return (

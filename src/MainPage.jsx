@@ -759,12 +759,12 @@ export default function App() {
         <SearchableTable gameId={sections[activeSectionIndex]?.id} returnParent={(data) => {
           setIsModalOpen(false);
           form.resetFields();
-          const name = data?.events?.[0] || data.title;
+          const name = data?.name;
           const gId = data?.id;
           let d = '', eId = undefined;
           const idx = sections[activeSectionIndex].events.findIndex(i => i.gallery_id === gId && i.name === name);
           if (idx !== -1) { eId = sections[activeSectionIndex].events[idx].id; d = sections[activeSectionIndex].events[idx].default_day; }
-          form.setFieldsValue({ eventId: eId, galleryId: gId, gameName: name, relatedName: data?.events?.[0] !== data.title ? data.title : '', post_slug: data.permalink.replace('https://my.liquidandgrit.com/library/gallery/', ''), day: d });
+          form.setFieldsValue({ eventId: eId, galleryId: gId, gameName: name, relatedName: data?.sub?.includes(data?.name), post_slug: urlSlug, day: d });
 
 
         }} />
